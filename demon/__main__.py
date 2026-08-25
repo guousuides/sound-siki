@@ -2,7 +2,7 @@
 
     python -m demon                     # 電車デーモン
     python -m demon train cicada        # both at once
-    python -m demon cicada --volume 0.5
+    python -m demon cicada --volume 0.8
     python -m demon --list
     python -m demon --devices
     python -m demon train --demo        # no keyboard hook, scripted typist
@@ -39,7 +39,7 @@ def build_args():
     p.add_argument("--list", action="store_true", help="デーモン一覧")
     p.add_argument("--devices", action="store_true", help="音声出力デバイス一覧")
     p.add_argument("--device", default=None, help="出力デバイス番号または名前")
-    p.add_argument("--volume", type=float, default=0.7, help="音量 0..1 (既定 0.7)")
+    p.add_argument("--volume", type=float, default=0.65, help="音量 0..1 (既定 0.65)")
     p.add_argument("--rate", type=int, default=44100, help="サンプリング周波数")
     p.add_argument("--block", type=int, default=2048,
                    help="ブロックサイズ (大きいほど軽い / 既定 2048 = 約46ms)")

@@ -51,8 +51,8 @@ class Engine:
         ramp = np.linspace(self._gain, step, n, dtype=np.float32)
         self._gain = float(step)
         buf *= ramp * self.volume
-        np.tanh(buf * 1.6, out=buf)
-        buf *= 0.625
+        np.tanh(buf * 1.9, out=buf)
+        buf *= 0.53
 
         self.peak = max(self.peak * 0.98, float(np.max(np.abs(buf))))
         return buf.T

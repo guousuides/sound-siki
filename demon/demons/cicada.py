@@ -20,12 +20,13 @@ from __future__ import annotations
 
 import numpy as np
 
-from ..dsp import (Loop, StereoBed, Voices, add_panned, band, damped_sine,
-                   ema_alpha, env_ad, noise_loop, normalize, peak, tilt)
+from ..dsp import (Loop, StereoBed, Voices, add_panned, band, clamp,
+                   damped_sine, ema_alpha, env_ad, noise_loop, normalize,
+                   peak, tilt)
 from ..keywatch import BACKSPACE, ENTER
 from .base import Demon, bar
 
-N_VOICES = 12
+N_VOICES = 10
 HIGURASHI_AFTER = 20 * 60.0   # seconds of sustained flow before dusk sets in
 
 
@@ -154,55 +155,57 @@ class CicadaDemon(Demon):
         # A single typo is not an event; a burst of corrections is. Pressure
         # builds across backspaces and leaks away, so only a real correction
         # storm - or a sharp one after a quiet stretch - startles them.
-        self._disturb = max(0.0, self._disturb - dt * 0.8)
+        self._disturb = max(0.0, self._disturb - dt * 0.6)
         self._cooldown = max(0.0, self._cooldown - dt)
         self._chime_wait = max(0.0, self._chime_wait - dt)
 
         for kind in events:
             if kind == BACKSPACE:
                 self._disturb += 1.0
-                if self._disturb >= 3.0 and self._cooldown <= 0.0:
+                if self._disturb >= 4.0 and self._cooldown <= 0.0:
                     self._disturb = 0.0
-                    self._cooldown = float(rng.uniform(6.0, 12.0))
+                    self._cooldown = float(rng.uniform(10.0, 20.0))
                     # Something moved. The nearest ones stop first.
                     singing = sorted((v for v in self.voices_pool if v.level > 0.25),
-                                     key=lambda v: -v.level)[:3]
+                                     key=lambda v: -v.level)[:2]
                     for v in singing:
-                        v.hush = max(v.hush, float(rng.uniform(1.8, 4.5)))
+                        v.hush = max(v.hush, float(rng.uniform(2.5, 5.0)))
             elif kind == ENTER:
                 # Enter is common while coding, so the chime is rationed: it
                 # should feel like a breeze arriving, not a notification.
                 if self._chime_wait <= 0.0:
                     self._chime_wait = float(rng.uniform(35.0, 110.0))
-                    self.oneshots.trigger(self.furin, gain=float(rng.uniform(0.34, 0.58)),
+                    self.oneshots.trigger(self.furin, gain=float(rng.uniform(0.24, 0.40)),
                                           pan=float(rng.uniform(-0.6, 0.6)),
                                           rate=float(rng.uniform(0.96, 1.05)))
 
-        # How many individuals the weather supports right now.
-        want = 1 + int(round((N_VOICES - 2) * rhythm.flow ** 0.85))
+        # How many individuals the weather supports right now. Fractional on
+        # purpose: the voice on the boundary rides in and out at partial level,
+        # so the chorus thickens as a gradient instead of in steps.
+        want = 1.0 + (N_VOICES - 3) * rhythm.flow ** 0.85
 
         for i, v in enumerate(self.voices_pool):
             if v.hush > 0.0:
                 v.hush = max(0.0, v.hush - dt)
                 target = 0.0
-                tau = 0.25                       # a startled cicada cuts out fast
+                tau = 0.4                        # a startled cicada cuts out fast
             else:
-                target = 1.0 if i < want else 0.0
-                tau = 2.6 if target > v.level else 1.9
+                target = clamp(want - i)
+                tau = 7.0 if target > v.level else 5.5
             v.level += ema_alpha(dt, tau) * (target - v.level)
             if v.level > 0.004:
                 near = 1.0 - 0.75 * v.far
-                add_panned(out, v.loop.render(n, v.rate), 0.40 * near * v.level, v.pan)
+                add_panned(out, v.loop.render(n, v.rate), 0.26 * near * v.level, v.pan)
 
         # After a long stretch of unbroken flow the afternoon turns to dusk.
         dusk_target = 1.0 if rhythm.sustain > HIGURASHI_AFTER else 0.0
         self._dusk += ema_alpha(dt, 25.0) * (dusk_target - self._dusk)
         if self._dusk > 0.004:
             h = self.higurashi
-            add_panned(out, h.loop.render(n, h.rate), 0.34 * self._dusk, h.pan)
+            add_panned(out, h.loop.render(n, h.rate), 0.24 * self._dusk, h.pan)
 
-        self.chorus.add(out, n, 1.0, 0.10 + 0.20 * rhythm.flow)
-        self.heat.add(out, n, 1.0, 0.10)
+        self.chorus.add(out, n, 1.0, 0.11 + 0.10 * rhythm.flow)
+        self.heat.add(out, n, 1.0, 0.085)
         self.oneshots.render(out)
 
     def status(self):

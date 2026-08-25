@@ -23,7 +23,8 @@ class Rhythm:
     """Rolling features of the typing stream - the demon's food.
 
     kps        keys per second, smoothed
-    intensity  kps normalised to 0..1 (the instantaneous drive)
+    intensity  0..1 drive, smoothed again on top of kps so the soundscape
+               drifts with the session rather than with each flurry
     flow       slow accumulator: how long you have been *sustaining* it
     error      fraction of keystrokes that are corrections
     idle       seconds since the last key
@@ -46,14 +47,18 @@ class Rhythm:
         n = len(kinds)
         nb = sum(1 for k in kinds if k == BACKSPACE)
 
-        self.kps += ema_alpha(dt, 1.2) * (n / dt - self.kps)
+        self.kps += ema_alpha(dt, 3.0) * (n / dt - self.kps)
         self.back_kps += ema_alpha(dt, 6.0) * (nb / dt - self.back_kps)
         self.idle = 0.0 if n else self.idle + dt
         self.total += n
 
-        self.intensity = clamp(self.kps / self.TARGET_KPS)
-        target = 1.0 if self.intensity > 0.12 else 0.0
-        self.flow += ema_alpha(dt, 9.0 if target > self.flow else 6.0) * (target - self.flow)
+        # Two stages on purpose. Typing density is gusty - a burst, a pause to
+        # think, another burst - and a demon that follows it directly sounds
+        # twitchy. The second stage turns those gusts into a slow tide.
+        drive = clamp(self.kps / self.TARGET_KPS)
+        self.intensity += ema_alpha(dt, 6.0 if drive > self.intensity else 8.0) * (drive - self.intensity)
+        target = 1.0 if drive > 0.12 else 0.0
+        self.flow += ema_alpha(dt, 20.0 if target > self.flow else 15.0) * (target - self.flow)
         self.error = clamp(self.back_kps / max(self.kps, 0.4))
         self.sustain = self.sustain + dt if self.flow > 0.5 else max(0.0, self.sustain - dt * 3.0)
 
