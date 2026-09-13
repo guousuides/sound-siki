@@ -25,6 +25,36 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
+### Termux（Android）では
+
+WAV の書き出しだけ動く。
+
+```bash
+pkg install python-numpy sox
+python -m demon train --render ride.wav --seconds 600
+play ride.wav
+```
+
+リアルタイムは動かないし、これは足りないパッケージの問題ではない。
+**Android は一般アプリにグローバルキーフックを許さない** —— 他アプリへの打鍵を
+覗くには Accessibility Service が要る —— ので、「打鍵を餌にする」という
+このデーモンの一点がそもそも成立しない。pynput の Linux バックエンドが X11 を
+要求する、という以前の話です。
+
+音のほうも、`portaudio` パッケージ自体はあるのに Python から
+デバイスが一つも見えない不具合がある（termux-packages #20570、#21545）。
+`sox` の `play` は動くのに、というのが厄介なところ。
+
+つまり Termux では**録音済みの音を流すだけ**になる。
+それなら最初から YouTube でいい。
+
+道がないわけではなくて、(1) グローバルフックの代わりに擬似端末で包んで
+（`demon train -- nvim foo.py`）通過するバイトを数える、(2) sounddevice の代わりに
+PCM を `play -t raw` に流す、の 2 つで動くはずではある。Termux ではどうせ全部
+ターミナルの中なので、(1) はむしろ今より覗く範囲が狭い。やっていない。
+
+---
+
 ## 使い方
 
 ```powershell
