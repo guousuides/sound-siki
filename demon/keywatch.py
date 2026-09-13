@@ -31,7 +31,11 @@ class Rhythm:
     sustain    seconds of continuous flow, for long-haul easter eggs
     """
 
-    TARGET_KPS = 6.0
+    # What counts as "flat out". Sustained prose or code sits around 4-6; this
+    # is set above that on purpose, so the useful range of typing speeds spreads
+    # across the dial instead of pinning it. The cicada reads `flow`, not this,
+    # so its threshold barely moves.
+    TARGET_KPS = 9.0
 
     def __init__(self):
         self.kps = 0.0
