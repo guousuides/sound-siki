@@ -6,6 +6,8 @@ a shared stereo block in `render()`.
 """
 from __future__ import annotations
 
+from collections import deque
+
 import numpy as np
 
 
@@ -17,6 +19,13 @@ class Demon:
     def __init__(self, sr, rng):
         self.sr = sr
         self.rng = rng
+        # Lines of Japanese for the terminal. The audio thread appends and the
+        # display thread drains, which a deque does safely without a lock.
+        self.log = deque(maxlen=64)
+        self.finished = False
+
+    def say(self, text):
+        self.log.append(text)
 
     def prepare(self):
         """Synthesise every buffer this demon will ever need."""
