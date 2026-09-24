@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from .. import field
 from ..announce import (Announcer, Speaker, approaching, arrival, departure,
                         held, next_stop, signal_hold, terminus)
 from ..dsp import (Osc, StereoBed, Voices, add_panned, band, clamp,
@@ -58,6 +59,8 @@ class TrainDemon(Demon):
         self.run = None
         self._start = (0.0, 0.0)
         self.keys = 0
+        self.sounds_dir = None          # None = ~/.demon/sounds
+        self.field = {}
 
         self.tunnel = 0.0
         self._station = 0.0
@@ -109,6 +112,9 @@ class TrainDemon(Demon):
         self.chime_open = self._make_chime((988.0, 740.0), 2)
         self.chime_close = self._make_chime((740.0, 988.0), 3, spacing=0.30)
         self.meet = self._make_meet()
+
+        # Recordings you brought, if any. Absent files are just absent slots.
+        self.field = field.load(sr, self.sounds_dir)
 
         self.voices = Voices(limit=72)
         self.run = Run(self.plan, self.rng, *self._start)
@@ -306,8 +312,19 @@ class TrainDemon(Demon):
                                              harmonics=(1.0, 0.30, 0.12))
             add_panned(out, whine, 0.024 * run.brake * min(1.0, sp / 0.08))
 
+        rec = self.field
+        if "running" in rec and moving:
+            rec["running"].add(out, n, 0.97 + 0.06 * sp,
+                               0.55 * sp ** 0.7 * (1.0 - tun * ("tunnel" in rec)))
+        if "tunnel" in rec and tun > 0.001:
+            rec["tunnel"].add(out, n, 0.97 + 0.06 * sp, 0.55 * tun * max(sp, 0.25))
+
         if self._station > 0.01:
-            self.platform.add(out, n, 1.0, 0.050 * self._station)
+            # A real platform recording takes over most of the synthetic one.
+            synth = 0.35 if "platform" in rec else 1.0
+            self.platform.add(out, n, 1.0, 0.050 * synth * self._station)
+            if "platform" in rec:
+                rec["platform"].add(out, n, 1.0, 0.45 * self._station)
         if self._cp > 0.01:
             self.cp.add(out, n, 1.0, 0.055 * self._cp)
         if (run.phase == DWELL and self._station > 0.4 and not run.in_tunnel

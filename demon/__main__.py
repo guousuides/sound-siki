@@ -60,6 +60,8 @@ def build_args():
     p.add_argument("--kind", default=None, help="種別 (既定: その路線の先頭)")
     p.add_argument("--reverse", action="store_true", help="逆向き（上り/外回り）")
     p.add_argument("--fresh", action="store_true", help="前回の続きを無視して乗り直す")
+    p.add_argument("--sounds", metavar="DIR", default=None,
+                   help="持ち込みの環境音WAVを置くフォルダ (既定: ~/.demon/sounds)")
     p.add_argument("--no-exit", dest="no_exit", action="store_true",
                    help="終点に着いても終了せず、ホームで鳴り続ける")
     return p
@@ -208,8 +210,12 @@ def main(argv=None):
         print(picker.describe(plan, start_x))
         print()
 
+    if train is not None:
+        train.sounds_dir = args.sounds
     for d in demons:
         d.prepare()
+    if train is not None and train.field:
+        print("  持ち込みの環境音: %s" % "、".join(sorted(train.field)))
 
     if headless:
         source = ScriptedTypist(np.random.default_rng(args.seed))

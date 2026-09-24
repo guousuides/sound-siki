@@ -169,6 +169,10 @@ class StereoBed:
     __slots__ = ("left", "right")
 
     def __init__(self, buf, spread=0.37):
+        buf = np.asarray(buf)
+        if buf.ndim == 2:          # a real stereo recording already has its space
+            self.left, self.right = Loop(buf[0]), Loop(buf[1])
+            return
         self.left = Loop(buf)
         self.right = Loop(buf)
         self.right.pos = (self.right.buf.shape[0] * spread) % self.right.buf.shape[0]
