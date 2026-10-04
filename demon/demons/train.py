@@ -38,6 +38,7 @@ from ..dsp import (Osc, StereoBed, Voices, add_panned, band, clamp,
 from ..keywatch import ENTER
 from ..lines import LINES
 from ..route import DONE, DWELL, RAIL, Run
+from ..voice import VoicedAnnouncer
 from .base import Demon, bar
 
 AXLE_SPACING = 2.4       # m, between the two axles of one bogie
@@ -68,6 +69,7 @@ class TrainDemon(Demon):
         self._speak_free = 0.0
         self._motor = Osc(60.0)
         self._brake_motor = Osc(900.0)
+        self.voice = None        # a voice.Voicevox, or None for the formant announcer
 
     def board(self, plan, x=0.0, elapsed=0.0):
         """Choose the journey. Must be called before prepare()."""
@@ -113,12 +115,23 @@ class TrainDemon(Demon):
         self.voices = Voices(limit=72)
         self.run = Run(self.plan, self.rng, *self._start)
         self._prev_x = self.run.x
-        self.speaker = Speaker(Announcer(sr, rng).prepare()).start()
+        self.speaker = Speaker(self._announcer()).start()
         # A welded-rail subway does not really do this; see README. It gets the
         # joints anyway, at less than half voice, because a train demon with no
         # gatan-goton in it is not a train demon.
         self._joint_gain = 1.0 if self.plan.line.jointed else 0.42
         return self
+
+    def _announcer(self):
+        formants = Announcer(self.sr, self.rng).prepare()
+        if self.voice is None:
+            return formants
+        # The engine reads kanji well and station names badly, so it gets the
+        # names as the readings the line data already carries.
+        line = self.plan.line
+        readings = {s.name: s.kana for s in line.stations}
+        readings.update((k.name, k.kana) for k in line.kinds)
+        return VoicedAnnouncer(self.voice, formants, self.sr, readings)
 
     # ------------------------------------------------------- one-shot sounds
     def _make_clack(self, var):
@@ -353,7 +366,7 @@ class TrainDemon(Demon):
     def _speak(self, made, room=0.35):
         text, kana = made
         self.say("♪ " + text)
-        self.speaker.request(kana, room)
+        self.speaker.request(kana, room, text)
 
     def _handle(self, ev, sp):
         kind = ev[0]

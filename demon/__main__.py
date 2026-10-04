@@ -17,7 +17,7 @@ import time
 
 import numpy as np
 
-from . import __version__, journey, picker
+from . import __version__, journey, picker, voice
 from .demons import REGISTRY
 from .engine import Engine
 from .keywatch import KeyWatcher, ScriptedTypist
@@ -62,6 +62,14 @@ def build_args():
     p.add_argument("--fresh", action="store_true", help="前回の続きを無視して乗り直す")
     p.add_argument("--no-exit", dest="no_exit", action="store_true",
                    help="終点に着いても終了せず、ホームで鳴り続ける")
+    p.add_argument("--voice", choices=("auto", "voicevox", "synth"), default="auto",
+                   help="車内放送の声。auto: VOICEVOX が動いていれば使う / "
+                        "synth: フォルマント合成のみ (既定 auto)")
+    p.add_argument("--speaker", type=int, default=voice.DEFAULT_SPEAKER,
+                   help="VOICEVOX の話者スタイル ID (既定 %d = ずんだもん)"
+                        % voice.DEFAULT_SPEAKER)
+    p.add_argument("--voicevox", metavar="URL", default=voice.DEFAULT_URL,
+                   help="VOICEVOX 互換エンジンの URL (既定 %s)" % voice.DEFAULT_URL)
     return p
 
 
@@ -207,6 +215,15 @@ def main(argv=None):
             train.board(plan)
         print(picker.describe(plan, start_x))
         print()
+
+    if train is not None and args.voice != "synth":
+        engine_voice = voice.Voicevox(args.voicevox, args.speaker)
+        if engine_voice.probe():
+            print("  車内放送: %s" % engine_voice.credit)
+        elif args.voice == "voicevox":
+            print("  車内放送: %s に VOICEVOX が見つかりません。"
+                  "保存済みの文だけ肉声、残りはフォルマント合成で喋ります。" % args.voicevox)
+        train.voice = engine_voice
 
     for d in demons:
         d.prepare()
