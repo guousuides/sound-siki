@@ -87,6 +87,11 @@ for small, big in zip("ぁぃぅぇぉ", "あいうえお"):
 SMALL_Y = {"ゃ": A, "ゅ": U, "ょ": O}
 
 
+def pa_response(f):
+    """The carriage speaker: a small cone behind a grille in the ceiling."""
+    return band(f, 330, 3300, 0.65) * (1.0 + 0.55 * peak(f, 1500, 1.4, 1.0))
+
+
 class Mora:
     """One beat of speech: a gesture, a vowel, and how long to hold it."""
 
@@ -169,8 +174,7 @@ class Announcer:
         return self
 
     def _pa(self, f):
-        """The carriage speaker: a small cone behind a grille in the ceiling."""
-        return band(f, 330, 3300, 0.65) * (1.0 + 0.55 * peak(f, 1500, 1.4, 1.0))
+        return pa_response(f)
 
     def _make_vowel(self, v, f0, seconds=0.175):
         """Additive synthesis: harmonics of f0 through three formants."""
@@ -230,12 +234,15 @@ class Announcer:
         return normalize(y * env, 0.6)
 
     # ---------------------------------------------------------------- speak
-    def render(self, phrases, room=0.35):
+    def render(self, phrases, room=0.35, text=None):
         """(kana, style) pairs -> one mono buffer, PA reflections included.
 
         Assembling the whole announcement here rather than scheduling a voice
         per syllable keeps the mixer's voice count flat: a twenty-mora sentence
         costs the realtime path exactly one voice, same as a rail joint.
+
+        `text` is the sentence as written. Formants cannot read, so it is
+        ignored here; voice.VoicedAnnouncer is the one that uses it.
         """
         sr = self.sr
         plan, t = [], 0.0
@@ -381,8 +388,8 @@ class Speaker:
         self._alive = False
         self._wake.set()
 
-    def request(self, phrases, room=0.35):
-        self._in.append((phrases, room))
+    def request(self, phrases, room=0.35, text=None):
+        self._in.append((phrases, room, text))
         self._wake.set()
 
     def poll(self):
@@ -393,9 +400,9 @@ class Speaker:
             self._wake.wait(0.5)
             self._wake.clear()
             while self._in and self._alive:
-                phrases, room = self._in.popleft()
+                phrases, room, text = self._in.popleft()
                 try:
-                    self._out.append(self.announcer.render(phrases, room))
+                    self._out.append(self.announcer.render(phrases, room, text))
                 except Exception:
                     pass          # a missed announcement must never stop the ride
 
