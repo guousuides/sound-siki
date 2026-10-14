@@ -33,6 +33,10 @@ Click it again to get off.
 |---|---|---|
 | `demon.demons` | `["train"]` | Which demons to wake: `train`, `cicada` |
 | `demon.volume` | `0.65` | 0..1 |
+| `demon.trainVolume` / `demon.cicadaVolume` | `1` | Per-demon volume, 0..2. Applies live |
+| `demon.announceVolume` | `1` | Announcement volume, 0..2. Applies live |
+
+Click the 🔊 icon in the status bar to open the mixer (master / train / cicadas / announcements).
 | `demon.keySource` | `editor` | `editor`: only edits in VS Code (no permissions). `global`: OS-wide key hook via pynput (macOS needs Accessibility permission) |
 | `demon.voice` | `auto` | `auto` / `voicevox` / `synth` |
 | `demon.speaker` | `3` | VOICEVOX style ID |

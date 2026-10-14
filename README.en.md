@@ -81,6 +81,8 @@ code --install-extension typing-demon-0.1.0.vsix
 - Keystrokes are taken from **edits in the editor** (`demon.keySource: editor`). No OS key
   hook, so no Accessibility permission on macOS. Set it to `global` to also pick up typing
   in the terminal.
+- The 🔊 icon in the status bar opens a mixer: master, train, cicadas and announcements, each
+  adjustable live.
 - The status bar shows speed, next stop and distance left; announcement text goes to the
   **demon** output panel.
 - Closing VS Code parks the train where it is.
@@ -275,6 +277,8 @@ falls back to the formant synthesis above if it's not there.
 demon train --speaker 8                        # voice style ID (default 3 = Zundamon)
 demon train --voicevox http://127.0.0.1:10101  # a compatible engine such as AivisSpeech
 demon train --voice synth                      # formant synthesis only
+demon train --announce-volume 0.5              # announcements only at half volume (0–2, default 1)
+demon train cicada --cicada-volume 0.4         # quieter cicadas (likewise --train-volume)
 ```
 
 - The engine is given **the sentence in kanji** (accents come out more natural that way),

@@ -130,7 +130,8 @@ class StdinKeys:
     extension, which watches the editor instead of hooking the whole OS.
 
     Each line is one of c/s/b/e (char, space, backspace, enter); q or EOF
-    asks the daemon to stop. The extension already reduced the edit to a
+    asks the daemon to stop. A line "v<channel> <number>" sets a volume live
+    (channel: master, announce, or a demon name such as train / cicada). The extension already reduced the edit to a
     category before sending it, so the privacy rule holds end to end.
     """
 
@@ -142,6 +143,7 @@ class StdinKeys:
         self._collect = collect
         self._queue = deque(maxlen=1024)
         self.quit = threading.Event()
+        self.volumes = {}              # {"train": 0.8, ...} from "v" lines, drained by the main loop
 
     def start(self):
         t = threading.Thread(target=self._read, daemon=True)
@@ -151,6 +153,13 @@ class StdinKeys:
     def _read(self):
         try:
             for raw in self._stream:
+                if raw.startswith("v"):
+                    try:
+                        name, value = raw[1:].split()
+                        self.volumes[name] = max(0.0, min(2.0, float(value)))
+                    except ValueError:
+                        pass
+                    continue
                 for ch in raw.strip():
                     if ch == "q":
                         self.quit.set()
