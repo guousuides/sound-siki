@@ -39,6 +39,8 @@ Click it again to get off.
 Click the 🔊 icon in the status bar to open the mixer (master / train / cicadas / announcements).
 | `demon.keySource` | `editor` | `editor`: only edits in VS Code (no permissions). `global`: OS-wide key hook via pynput (macOS needs Accessibility permission) |
 | `demon.voice` | `auto` | `auto` / `voicevox` / `synth` |
+| `demon.autoStartVoicevox` | `true` | Start a locally installed VOICEVOX engine when boarding if it isn't running (stopped again when VS Code closes) |
+| `demon.voicevoxEnginePath` | `""` | Path to `vv-engine/run.exe` (`run` on macOS) if it isn't found automatically |
 | `demon.speaker` | `3` | VOICEVOX style ID |
 | `demon.noExit` | `false` | Keep running after arriving |
 | `demon.pythonPath` | `""` | Python used to create the venv |

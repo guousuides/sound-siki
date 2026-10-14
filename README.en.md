@@ -85,6 +85,8 @@ code --install-extension typing-demon-0.1.0.vsix
   adjustable live.
 - The status bar shows speed, next stop and distance left; announcement text goes to the
   **demon** output panel.
+- If VOICEVOX is installed, the extension starts its engine in the background when you board
+  (and stops it when VS Code closes).
 - Closing VS Code parks the train where it is.
 
 See [vscode/README.md](vscode/README.md) for details.
