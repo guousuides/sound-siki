@@ -1,5 +1,11 @@
 # demon — 打鍵を餌にする環境音デーモン
 
+[English](README.en.md) | **日本語**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Python](https://img.shields.io/badge/python-3.9%2B-blue)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
+
 新幹線・特急禁止縛りで京都に行った帰り、Wi-Fi がないので AI なしでコードを書いていた。
 イヤホンで音楽を流すと気が散る。かといって無音だとソワソワする。
 イヤホンを外して、電車の走行音と蝉の声をそのまま BGM にしたら、いちばん集中できた。
@@ -15,28 +21,75 @@ YouTube で環境音を流せばいい、という話ではある。でも容量
 - ソース全体: **約 111 KB / 2,850 行**
 - CPU: 両方のデーモンを全開で鳴らして **1 コアの約 5%**
 - 依存: `numpy` / `sounddevice` / `pynput` のみ（コンパイラ不要）
+- 使い方は 2 通り: **ターミナルのコマンド** か **VS Code 拡張**
 
 ---
 
 ## インストール
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+Python 3.9 以上が必要。
+
+### コマンドとして（Windows / macOS / Linux）
+
+```sh
+pip install git+https://github.com/guousuides/sound-siki
+demon            # 路線を選んで乗る
 ```
+
+clone して開発する場合:
+
+```sh
+git clone https://github.com/guousuides/sound-siki
+cd sound-siki
+python -m venv .venv
+# Windows:      .\.venv\Scripts\activate
+# macOS/Linux:  source .venv/bin/activate
+pip install -e .
+```
+
+OS ごとの注意:
+
+- **macOS**: キーボード全体を監視するため、初回に「システム設定 → プライバシーとセキュリティ →
+  **アクセシビリティ**（と入力監視）」で、使っているターミナルアプリを許可する必要がある。
+  許可したくなければ下の VS Code 拡張を使えば要らない。
+- **Linux**: `sounddevice` が PortAudio を使うので `sudo apt install libportaudio2` が要ることがある。
+  キー監視は X11 前提（Wayland では拾えない）。
+- clone した場合は同梱のランチャーで venv を意識せず動かせる:
+  Windows は `.\demon.ps1 train cicada`、macOS / Linux は `./demon.sh train cicada`。
+
+### VS Code 拡張として（Windows / macOS）
+
+`vscode/` に拡張機能が入っている。ターミナルを開かなくても、ステータスバーの
+**▶ demon** を押すだけで乗車できる。
+
+```sh
+cd vscode
+npm run package                                   # typing-demon-0.1.0.vsix ができる
+code --install-extension typing-demon-0.1.0.vsix
+```
+
+- 初回だけ、拡張専用の venv を作って `numpy` / `sounddevice` を入れる（要 Python 3.9+）。
+  Windows は `py -3`、macOS は `python3` を自動で探す。見つからなければ設定 `demon.pythonPath`。
+- 路線・向き・種別・出発駅・目的駅はクイックピックで選ぶ。前回の続きもそこで選べる。
+- 打鍵は**エディタでの編集**から取る（`demon.keySource: editor`）。OS のキーフックを使わないので、
+  macOS でもアクセシビリティ許可は要らない。ターミナルの打鍵も拾いたければ `global` に。
+- ステータスバーに速度・次駅・残り距離。車内放送の文字は出力パネル「demon」に流れる。
+- VS Code を閉じると駅位置を保存して眠る。
+
+詳しくは [vscode/README.md](vscode/README.md)。
 
 ## 使い方
 
-```powershell
-.\.venv\Scripts\python.exe -m demon                # 路線を選んで乗る
-.\.venv\Scripts\python.exe -m demon train cicada   # 電車 + 蝉
-.\.venv\Scripts\python.exe -m demon cicada --volume 0.85   # 既定は 0.65
-.\.venv\Scripts\python.exe -m demon --lines        # 路線一覧
-.\.venv\Scripts\python.exe -m demon --list         # デーモン一覧
-.\.venv\Scripts\python.exe -m demon --devices      # 出力デバイス一覧
+```sh
+demon                       # 路線を選んで乗る
+demon train cicada          # 電車 + 蝉
+demon cicada --volume 0.85  # 既定は 0.65
+demon --lines               # 路線一覧
+demon --list                # デーモン一覧
+demon --devices             # 出力デバイス一覧
 ```
 
-同梱の `demon.ps1` を使えば `.\demon.ps1 train cicada` だけで済む。
+`demon` コマンドが無い環境（clone しただけ等）では `python -m demon ...` でも同じ。
 
 電車デーモンは起動のたびに**どこからどこまで乗るか**を聞く。路線、向き、種別、
 出発駅、目的駅の順に番号を打つだけで、Enter だけ押していけば既定が選ばれる。
@@ -54,10 +107,10 @@ python -m venv .venv
 **「目安 15 分」が出るのが肝**で、乗る前に今日の作業がどれくらいの長さか決まる。
 毎回聞かれるのが煩わしければ、全部指定すれば飛ばせる:
 
-```powershell
-.\demon.ps1 train --line chuo --from 東京 --to 高尾 --kind 特別快速
-.\demon.ps1 train --fresh            # 前回の続きを無視して乗り直す
-.\demon.ps1 train --no-exit          # 終点に着いても終了しない
+```sh
+demon train --line chuo --from 東京 --to 高尾 --kind 特別快速
+demon train --fresh            # 前回の続きを無視して乗り直す
+demon train --no-exit          # 終点に着いても終了しない
 ```
 
 Ctrl+C でフェードアウトして終了。**目的駅に着いても終わる** —— 終点のアナウンスの
@@ -65,15 +118,14 @@ Ctrl+C でフェードアウトして終了。**目的駅に着いても終わ�
 
 キーボードを触らずに音だけ確かめたいとき:
 
-```powershell
-.\demon.ps1 train --demo                            # 台本どおりの仮想タイピングで鳴らす
-.\demon.ps1 train cicada --render out.wav --seconds 90   # WAV に書き出す
+```sh
+demon train --demo                            # 台本どおりの仮想タイピングで鳴らす
+demon train cicada --render out.wav --seconds 90   # WAV に書き出す
 ```
 
 この 2 つは路線を聞かない（既定の山手線を走る）。
 
 ---
-
 ## 打鍵と音の結合
 
 デーモンが食べているのは**文字ではなくリズム**。速さ・持続・間・訂正の 4 つだけを見ている。
@@ -191,18 +243,23 @@ Enter         → 警笛（タイフォン）。ただし数分に一度まで
 放送はそちらの声で喋る**。何もしなくても `auto` で探しにいき、見つからなければ
 上のフォルマント合成に黙って戻る。
 
-1. [VOICEVOX](https://voicevox.hiroshiba.jp/) を入れて起動しておく（エンジンが `127.0.0.1:50021` で待つ）
-2. いつもどおり `.\demon.ps1 train` で乗る。起動時に `車内放送: VOICEVOX:ずんだもん（ノーマル）` と出れば肉声
+1. [VOICEVOX](https://voicevox.hiroshiba.jp/) を入れて起動しておく（エンジンが `127.0.0.1:50021` で待つ）。
+   Windows ならアプリを開かずに `.\start-voicevox.ps1` でエンジンだけ裏で起動できる
+2. いつもどおり `demon train` で乗る。起動時に `車内放送: VOICEVOX:ずんだもん（ノーマル）` と出れば肉声
 
-```powershell
-.\demon.ps1 train --speaker 8                      # 話者スタイル ID（既定 3 = ずんだもん）
-.\demon.ps1 train --voicevox http://127.0.0.1:10101  # AivisSpeech など互換エンジン
-.\demon.ps1 train --voice synth                    # 今までのフォルマント合成だけ
+```sh
+demon train --speaker 8                        # 話者スタイル ID（既定 3 = ずんだもん）
+demon train --announce japanese                # 英語放送を省いて日本語のみにする
+demon train --voicevox http://127.0.0.1:10101  # AivisSpeech など互換エンジン
+demon train --voice synth                      # 今までのフォルマント合成だけ
 ```
 
+- **日英バイリンガル放送**: 始発駅での丁寧な案内、次駅・出口案内、接近時の乗り換え路線案内、終点案内が本物の鉄道フォーマットで日英両方流れる
+- **車内サイン音（4点チャイム）**: 放送直前に鳴る爽やかなチャイム（C5-E5-G5-C6）も、音源アセットを使わず `numpy` の数式（減衰正弦波）だけでその場で合成
 - エンジンには**漢字のままの文**を渡す（そのほうがアクセントが自然）。ただし駅名と
   種別だけは路線データの読みがなをカタカナにして差し込む ——「四ツ谷」「雑司が谷」は
   辞書がいちばん間違える単語だから
+- 英語放送内の駅名やナンバリングも自動で音素調整されるため、車内放送特有の自然な英語アナウンスになる
 - 返ってくるのはスタジオ品質の声なので、フォルマントと**同じ天井スピーカーと鉄の箱**
   （330〜3300 Hz、短い反射 3 本）を通してから鳴らす
 - 一度喋った文は `~/.demon/voice/` に WAV で残す。駅の放送は毎回同じ文なので、
@@ -260,7 +317,7 @@ Enter         → 縁側の風鈴（頻度は絞ってある）
 
 ## プライバシー
 
-これはグローバルキーフックを張る。つまり技術的にはキーロガーと同じ入り口を使う。
+コマンド版（と拡張の `global` モード）はグローバルキーフックを張る。つまり技術的にはキーロガーと同じ入り口を使う。
 だから設計として、**入り口で捨てている**:
 
 `demon/keywatch.py` の `on_press` から外に出るのは `0..3` の整数（文字 / スペース /
@@ -292,6 +349,9 @@ Shift や Ctrl などの修飾キーは数える前に捨てている。
 VOICEVOX を使ったときだけ、`~/.demon/voice/` に放送の WAV がたまる。中身は
 「次は、渋谷。」のような**決まった文を読み上げた音声**だけで、これも打鍵とは
 無関係。消しても次に喋るときに作り直されるだけ。
+
+VS Code 拡張の既定（`editor` モード）はキーフックを張らない。エディタの編集イベントを
+拡張の中で `c/s/b/e` の 1 文字に縮めてから Python に渡すので、書いた内容はプロセスの外に出ない。
 
 `--demo` を付ければフックを一切張らず、ファイルも書かずに音だけ確認できる。
 
@@ -332,6 +392,7 @@ demon/
     base.py     デーモンの型
     train.py    電車デーモン
     cicada.py   蝉デーモン
+vscode/         VS Code 拡張（`python -m demon --ipc` を子プロセスで動かす）
 ```
 
 `route.py` が音を一切知らないのは意図的で、おかげで物理は
@@ -358,3 +419,18 @@ demon/
 
 アイデアの発端は [nathan-fiscaletti/keyboardsounds](https://github.com/nathan-fiscaletti/keyboardsounds)。
 あれは「打鍵そのものを鳴らす」。こちらは「打鍵を餌にして、鳴っている世界のほうを動かす」。
+
+---
+
+## コントリビュート
+
+Issue・PR 歓迎。新しい路線・新しいデーモン（雨、焚き火、喫茶店…）は特に嬉しい。
+手順は [CONTRIBUTING.md](CONTRIBUTING.md) を参照。
+
+## ライセンス
+
+[MIT License](LICENSE) © 2026 guousui
+
+コードは MIT。VOICEVOX で生成した音声は本リポジトリに含まれず、各キャラクター・
+エンジンの利用規約に従う。路線データ（駅名・営業キロ）は公開情報をもとにしたもので、
+各鉄道事業者とは無関係。

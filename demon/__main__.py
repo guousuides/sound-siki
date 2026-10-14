@@ -20,7 +20,7 @@ import numpy as np
 from . import __version__, journey, picker, voice
 from .demons import REGISTRY
 from .engine import Engine
-from .keywatch import KeyWatcher, ScriptedTypist
+from .keywatch import KeyWatcher, ScriptedTypist, StdinKeys
 from .lines import LINES, ORDER
 from .route import DONE
 
@@ -70,7 +70,42 @@ def build_args():
                         % voice.DEFAULT_SPEAKER)
     p.add_argument("--voicevox", metavar="URL", default=voice.DEFAULT_URL,
                    help="VOICEVOX 互換エンジンの URL (既定 %s)" % voice.DEFAULT_URL)
+    p.add_argument("--announce", choices=("bilingual", "japanese"), default="bilingual",
+                   help="車内放送の言語。bilingual: 日英バイリンガル / japanese: 日本語のみ (既定 bilingual)")
+    p.add_argument("--lines-json", dest="lines_json", action="store_true",
+                   help="路線と前回の続きを JSON で出す (拡張機能用)")
+    p.add_argument("--resume", action="store_true",
+                   help="前回の続きから聞かずに乗る (なければ通常の選択)")
+    p.add_argument("--ipc", action="store_true",
+                   help="拡張機能用: 打鍵を標準入力 (c/s/b/e, q で終了) から受け取り、"
+                        "状態を '@status ' 行で出す")
+    p.add_argument("--global-keys", dest="global_keys", action="store_true",
+                   help="--ipc でもキーボード全体を監視する (pynput)")
     return p
+
+
+def lines_json():
+    import json
+    out = {"lines": [], "parked": None}
+    for key in ORDER:
+        l = LINES[key]
+        out["lines"].append({
+            "key": key, "name": l.name, "note": l.note, "loop": l.is_loop,
+            "km": round(l.total_km, 1), "dirs": list(l.dir_names),
+            "stations": [s.name for s in l.stations],
+            "kinds": [{"name": k.name,
+                       "stops": None if k.stops is None else sorted(
+                           l.index(n) if isinstance(n, str) else n for n in k.stops)}
+                      for k in l.kinds],
+        })
+    parked = journey.load()
+    if parked is not None:
+        p = parked["plan"]
+        out["parked"] = {
+            "line": p.line.name, "kind": p.kind.name, "origin": p.origin.name,
+            "dest": p.dest.name, "left_km": round((p.length - parked["x"]) / 1000.0, 1),
+            "minutes": int(parked["elapsed"] / 60), "sessions": parked["sessions"]}
+    sys.stdout.write(json.dumps(out, ensure_ascii=False) + "\n")
 
 
 def list_demons():
@@ -140,6 +175,24 @@ def plan_from_args(args):
     return line.plan(direction, origin, dest, kind)
 
 
+def ipc_status_loop(engine, stop_event):
+    """Plain lines for a pipe: announcements as-is, the live line as @status."""
+    def flush_logs():
+        for d in engine.demons:
+            while d.log:
+                sys.stdout.write(d.log.popleft() + "\n")
+
+    while not stop_event.is_set():
+        flush_logs()
+        parts = ["%.1f keys/s" % engine.rhythm.kps]
+        parts += [d.status() for d in engine.demons]
+        sys.stdout.write("@status " + "  ".join(p for p in parts if p) + "\n")
+        sys.stdout.flush()
+        stop_event.wait(0.5)
+    flush_logs()
+    sys.stdout.flush()
+
+
 def status_loop(engine, stop_event):
     """One live line, with the announcements scrolling past above it."""
     spinner = "|/-\\"
@@ -192,6 +245,14 @@ def main(argv=None):
     if args.devices:
         list_devices()
         return 0
+    if args.lines_json:
+        lines_json()
+        return 0
+    if args.ipc:
+        try:
+            sys.stdout.reconfigure(line_buffering=True)
+        except Exception:
+            pass
 
     names = args.demons or ["train"]
     demons = make_demons(names, args.rate, args.seed)
@@ -204,7 +265,13 @@ def main(argv=None):
     if train is not None and not headless:
         # 乗車. Every run, unless the whole journey is on the command line.
         plan = plan_from_args(args)
-        if plan is None:
+        parked = journey.load() if (plan is None and args.resume and not args.fresh) else None
+        if parked is not None:
+            plan, start_x, sessions = parked["plan"], parked["x"], parked["sessions"] + 1
+            train.board(plan, start_x, parked["elapsed"])
+        elif plan is None and args.ipc:
+            raise SystemExit("--ipc では --line/--from/--to か --resume が必要です")
+        elif plan is None:
             picked = picker.pick(resume_ok=not args.fresh)
             if picked is None:
                 print("乗車をとりやめました。")
@@ -216,21 +283,28 @@ def main(argv=None):
         print(picker.describe(plan, start_x))
         print()
 
-    if train is not None and args.voice != "synth":
-        engine_voice = voice.Voicevox(args.voicevox, args.speaker)
-        if engine_voice.probe():
-            print("  車内放送: %s" % engine_voice.credit)
-        elif args.voice == "voicevox":
-            print("  車内放送: %s に VOICEVOX が見つかりません。"
-                  "保存済みの文だけ肉声、残りはフォルマント合成で喋ります。" % args.voicevox)
-        train.voice = engine_voice
+    if train is not None:
+        train.biling = (args.announce == "bilingual")
+        if args.voice != "synth":
+            engine_voice = voice.Voicevox(args.voicevox, args.speaker)
+            if engine_voice.probe():
+                print("  車内放送: %s" % engine_voice.credit)
+            elif args.voice == "voicevox":
+                print("  車内放送: %s に VOICEVOX が見つかりません。"
+                      "保存済みの文だけ肉声、残りはフォルマント合成で喋ります。" % args.voicevox)
+            train.voice = engine_voice
 
     for d in demons:
         d.prepare()
 
+    control = None
     if headless:
         source = ScriptedTypist(np.random.default_rng(args.seed))
         watcher = None
+    elif args.ipc:
+        control = StdinKeys(collect=not args.global_keys)
+        watcher = KeyWatcher() if args.global_keys else None
+        source = watcher or control
     else:
         watcher = KeyWatcher()
         source = watcher
@@ -249,17 +323,20 @@ def main(argv=None):
 
     for d in demons:
         print("  %s を起こしました - %s" % (d.title, d.blurb))
-    if watcher is not None:
+    if watcher is not None or control is not None:
         print("  打鍵は「速さ・間・訂正」だけを見ます。文字は一切記録しません。")
     else:
         print("  デモモード: キーボードは監視せず、台本どおりに打鍵を再現します。")
     if train is not None and not headless:
         print("  打鍵が主幹制御器です。手を止めると惰行し、やがて停まります。")
-    print("  Ctrl+C で終了")
+    if control is None:
+        print("  Ctrl+C で終了")
     print()
 
     if watcher is not None:
         watcher.start()
+    if control is not None:
+        control.start()
 
     stop_event = threading.Event()
     status = None
@@ -267,7 +344,7 @@ def main(argv=None):
     try:
         with engine.stream(device=parse_device(args.device)):
             if not args.quiet:
-                status = threading.Thread(target=status_loop,
+                status = threading.Thread(target=ipc_status_loop if args.ipc else status_loop,
                                           args=(engine, stop_event), daemon=True)
                 status.start()
             try:
@@ -275,6 +352,8 @@ def main(argv=None):
                     time.sleep(0.2)
                     if engine.error is not None:
                         raise engine.error
+                    if control is not None and control.quit.is_set():
+                        break
                     if train is not None and train.finished and not args.no_exit:
                         arrived = True
                         break
