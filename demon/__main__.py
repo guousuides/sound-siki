@@ -65,6 +65,12 @@ def build_args():
     p.add_argument("--voice", choices=("auto", "voicevox", "synth"), default="auto",
                    help="車内放送の声。auto: VOICEVOX が動いていれば使う / "
                         "synth: フォルマント合成のみ (既定 auto)")
+    p.add_argument("--announce-volume", dest="announce_volume", type=float, default=1.0,
+                   help="車内放送の音量倍率 0..2 (既定 1.0)。環境音の音量とは別")
+    p.add_argument("--train-volume", dest="train_volume", type=float, default=1.0,
+                   help="電車の環境音だけの音量倍率 0..2 (既定 1.0)")
+    p.add_argument("--cicada-volume", dest="cicada_volume", type=float, default=1.0,
+                   help="蝉の環境音だけの音量倍率 0..2 (既定 1.0)")
     p.add_argument("--speaker", type=int, default=voice.DEFAULT_SPEAKER,
                    help="VOICEVOX の話者スタイル ID (既定 %d = ずんだもん)"
                         % voice.DEFAULT_SPEAKER)
@@ -223,6 +229,20 @@ def status_loop(engine, stop_event):
     sys.stdout.flush()
 
 
+def apply_volumes(engine, train, pending):
+    """Live volume changes from the extension: master, announce, or a demon."""
+    while pending:
+        name, value = pending.popitem()
+        if name == "master":
+            engine.volume = min(value, 1.0)
+        elif name == "announce" and train is not None:
+            train.announce_volume = value
+        else:
+            for d in engine.demons:
+                if d.name == name:
+                    d.gain = value
+
+
 def parse_device(spec):
     if spec is None:
         return None
@@ -293,6 +313,10 @@ def main(argv=None):
                 print("  車内放送: %s に VOICEVOX が見つかりません。"
                       "保存済みの文だけ肉声、残りはフォルマント合成で喋ります。" % args.voicevox)
             train.voice = engine_voice
+    if train is not None:
+        train.announce_volume = max(0.0, min(2.0, args.announce_volume))
+    for d in demons:
+        d.gain = max(0.0, min(2.0, getattr(args, d.name + "_volume", 1.0)))
 
     for d in demons:
         d.prepare()
@@ -354,6 +378,8 @@ def main(argv=None):
                         raise engine.error
                     if control is not None and control.quit.is_set():
                         break
+                    if control is not None and control.volumes:
+                        apply_volumes(engine, train, control.volumes)
                     if train is not None and train.finished and not args.no_exit:
                         arrived = True
                         break

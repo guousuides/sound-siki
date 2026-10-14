@@ -51,6 +51,16 @@
         "category": "demon"
       },
       {
+        "command": "demon.keySource",
+        "title": "打鍵の拾い方を切り替える (エディタ／PC 全体)",
+        "category": "demon"
+      },
+      {
+        "command": "demon.mixer",
+        "title": "音量ミキサー (全体・電車・蝉・車内放送)",
+        "category": "demon"
+      },
+      {
         "command": "demon.setup",
         "title": "Python 環境を作り直す",
         "category": "demon"
@@ -83,7 +93,28 @@
           "default": 0.65,
           "minimum": 0,
           "maximum": 1,
-          "description": "音量"
+          "description": "全体の音量 (0〜1)。走行中に変えてもその場で効く"
+        },
+        "demon.trainVolume": {
+          "type": "number",
+          "default": 1,
+          "minimum": 0,
+          "maximum": 2,
+          "description": "電車の走行音だけの音量倍率 (0〜2)。走行中に変えてもその場で効く"
+        },
+        "demon.cicadaVolume": {
+          "type": "number",
+          "default": 1,
+          "minimum": 0,
+          "maximum": 2,
+          "description": "蝉・風鈴だけの音量倍率 (0〜2)。走行中に変えてもその場で効く"
+        },
+        "demon.announceVolume": {
+          "type": "number",
+          "default": 1,
+          "minimum": 0,
+          "maximum": 2,
+          "description": "車内放送だけの音量倍率 (0〜2、既定 1)。環境音の音量 demon.volume とは別に掛かる。走行中に変えてもその場で効く"
         },
         "demon.voice": {
           "type": "string",
@@ -108,8 +139,8 @@
           ],
           "default": "editor",
           "enumDescriptions": [
-            "VS Code のエディタでの入力だけを見る (権限不要)",
-            "OS 全体のキーボードを監視する (pynput。macOS はアクセシビリティ許可が必要)"
+            "この IDE のエディタでの入力だけを見る (権限不要)",
+            "PC 全体のキーボードを監視する (pynput)。ブラウザやチャットで打っても走る。macOS はアクセシビリティ許可が必要"
           ],
           "description": "打鍵をどこから取るか"
         },

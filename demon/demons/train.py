@@ -71,6 +71,7 @@ class TrainDemon(Demon):
         self._brake_motor = Osc(900.0)
         self.voice = None        # a voice.Voicevox, or None for the formant announcer
         self.biling = True
+        self.announce_volume = 1.0   # 車内放送だけの音量倍率 (0..2)
 
     def board(self, plan, x=0.0, elapsed=0.0):
         """Choose the journey. Must be called before prepare()."""
@@ -291,7 +292,7 @@ class TrainDemon(Demon):
             delay = max(0.0, self._speak_free) * sr
             self._speak_free = max(self._speak_free, 0.0) + buf.shape[0] / sr + 0.5
             for pan, off in ((-0.5, 0.0), (0.5, 0.006)):
-                self.voices.trigger(buf, delay=delay + off * sr, gain=0.30, pan=pan)
+                self.voices.trigger(buf, delay=delay + off * sr, gain=0.30 * self.announce_volume, pan=pan)
 
         self._render_joints(x0, run.x, v, n, sr)
 

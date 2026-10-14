@@ -42,7 +42,13 @@ class Engine:
         events = self.source.poll(dt)
         self.rhythm.update(dt, events)
         for demon in self.demons:
-            demon.render(buf, self.rhythm, events, dt)
+            if demon.gain == 1.0:
+                demon.render(buf, self.rhythm, events, dt)
+            else:                       # 個別音量: 別バッファに鳴らしてから倍率を掛けて足す
+                own = np.zeros_like(buf)
+                demon.render(own, self.rhythm, events, dt)
+                own *= demon.gain
+                buf += own
 
         # Master fade ramped across the block, then a soft limiter. tanh keeps
         # a sudden pile-up of rail joints from clipping without a pumping

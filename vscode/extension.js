@@ -12,11 +12,14 @@ const fs = require("fs");
 const path = require("path");
 
 const IS_WIN = process.platform === "win32";
-const DEPS = ["numpy>=1.24", "sounddevice>=0.4.6"];
+const TYPED_SCHEMES = new Set(["file", "untitled", "vscode-notebook-cell", "vscode-userdata", "vscode-remote"]);
+const DEPS =["numpy>=1.24", "sounddevice>=0.4.6"];
 
 let ctx;
 let out;
 let bar;
+let keyBar;
+let mixBar;
 let proc = null;
 let lastStatus = "";
 
@@ -170,7 +173,7 @@ function setBar(text, tooltip) {
   bar.tooltip = tooltip || "";
 }
 
-async function start() {
+async function start(opts = {}) {
   if (proc) {
     vscode.window.showInformationMessage("demon はもう走っています。");
     return;
@@ -188,13 +191,15 @@ async function start() {
   const c = cfg();
   const demons = c.get("demons");
   let args = ["-m", "demon", ...demons, "--ipc",
-    "--volume", String(c.get("volume")), "--voice", c.get("voice"), "--speaker", String(c.get("speaker"))];
+    "--volume", String(c.get("volume")), "--voice", c.get("voice"), "--speaker", String(c.get("speaker")),
+    "--announce-volume", String(c.get("announceVolume")),
+    "--train-volume", String(c.get("trainVolume")), "--cicada-volume", String(c.get("cicadaVolume"))];
   if (c.get("keySource") === "global") args.push("--global-keys");
   if (c.get("noExit")) args.push("--no-exit");
   if (demons.includes("train")) {
     let boarding;
     try {
-      boarding = await board(py);
+      boarding = opts.resume ? ["--resume"] : await board(py);
     } catch (e) {
       out.appendLine(String(e.message || e));
       vscode.window.showErrorMessage("demon: 路線の読み込みに失敗しました（出力パネル参照）");
@@ -239,8 +244,12 @@ async function start() {
 
 function shorten(status) {
   // "1.2 keys/s  電車 ##.. 副都心線 急行  62.0 km/h 力行 次:池袋 残り3.1km/2駅"
+  // 打鍵数は常に出す。ホームでは発車まで 20 秒以上かかるので、届いているかが見えないと壊れて見える
+  const k = status.match(/^([\d.]+) keys\/s/);
+  const keys = k ? `⌨${k[1]} ` : "";
   const m = status.match(/([\d.]+) km\/h\s+(\S+)\s+次:(\S+)\s+残り\s*([\d.]+km)/);
-  if (m) return `${Math.round(Number(m[1]))}km/h ${m[2]} 次:${m[3]} 残り${m[4]}`;
+  if (m && m[2] === "停車") return `${keys}停車中（打ち続けると発車） 次:${m[3]}`;
+  if (m) return `${keys}${Math.round(Number(m[1]))}km/h ${m[2]} 次:${m[3]} 残り${m[4]}`;
   if (/到着/.test(status)) return "到着";
   return status.replace(/\s+/g, " ").slice(0, 40);
 }
@@ -258,14 +267,86 @@ function stop() {
 // Reduce an edit to one letter. The text itself never leaves this function.
 function onEdit(e) {
   if (!proc || cfg().get("keySource") !== "editor") return;
-  const ed = vscode.window.activeTextEditor;
-  if (!ed || ed.document !== e.document || e.reason !== undefined) return;   // undo/redo は打鍵ではない
+  // 出力パネルや git など、人が打っていない文書は数えない。undo/redo も打鍵ではない
+  if (!TYPED_SCHEMES.has(e.document.uri.scheme) || e.reason !== undefined) return;
   const ch = e.contentChanges[0];                                            // マルチカーソルも 1 打鍵
   if (!ch) return;
   const code = ch.text === "" ? (ch.rangeLength > 0 ? "b" : null)
     : ch.text.includes("\n") ? "e"
     : ch.text === " " ? "s" : "c";
   if (code) proc.stdin.write(code + "\n");
+}
+
+// ---------------------------------------------------------------- key source
+const KEY_SOURCES = {
+  editor: { icon: "$(edit)", label: "エディタだけ", detail: "この IDE のエディタでの入力だけで走る。キーフックなし・権限不要" },
+  global: { icon: "$(globe)", label: "PC 全体", detail: "ブラウザやチャットなど、どのアプリで打っても走る（macOS はアクセシビリティ許可が必要）" },
+};
+
+function showKeySource() {
+  const k = KEY_SOURCES[cfg().get("keySource")] || KEY_SOURCES.editor;
+  keyBar.text = k.icon;
+  keyBar.tooltip = `demon の打鍵: ${k.label}
+クリックで切り替え`;
+}
+
+async function pickKeySource() {
+  const now = cfg().get("keySource");
+  const pick = await quick(Object.entries(KEY_SOURCES).map(([value, k]) => ({
+    label: `${k.icon} ${k.label}`, description: value === now ? "使用中" : "", detail: k.detail, value,
+  })), "打鍵をどこから拾いますか");
+  if (!pick || pick === now) return;
+  await cfg().update("keySource", pick, vscode.ConfigurationTarget.Global);
+  if (proc) {                       // 走行中なら、いまの位置で降りて同じ電車に乗り直す
+    await stop();
+    await start({ resume: true });
+  }
+}
+
+// -------------------------------------------------------------------- mixer
+// 走行中でも乗り直さずに効く: 標準入力に "v<チャンネル> <倍率>" を送るだけ
+const CHANNELS = [
+  { key: "volume", ch: "master", icon: "$(unmute)", label: "全体", max: 1 },
+  { key: "trainVolume", ch: "train", icon: "$(rocket)", label: "電車の走行音", max: 2 },
+  { key: "cicadaVolume", ch: "cicada", icon: "$(squirrel)", label: "蝉・風鈴", max: 2 },
+  { key: "announceVolume", ch: "announce", icon: "$(megaphone)", label: "車内放送", max: 2 },
+];
+
+function pct(v) {
+  return `${Math.round(v * 100)}%`;
+}
+
+function sendVolumes(keys) {
+  if (!proc) return;
+  for (const c of CHANNELS) {
+    if (!keys || keys.includes(c.key)) proc.stdin.write(`v${c.ch} ${cfg().get(c.key)}\n`);
+  }
+}
+
+function showMixer() {
+  const c = cfg();
+  mixBar.text = Number(c.get("volume")) === 0 ? "$(mute)" : "$(unmute)";
+  mixBar.tooltip = "demon の音量（クリックで調整）\n" + CHANNELS.map((ch) => `${ch.label}: ${pct(c.get(ch.key))}`).join("\n");
+}
+
+/** チャンネルを選ぶ → 段階を選ぶ → またチャンネル一覧へ。Esc で閉じる */
+async function openMixer() {
+  for (;;) {
+    const c = cfg();
+    const ch = await quick(CHANNELS.map((x) => ({
+      label: `${x.icon} ${x.label}`, description: pct(c.get(x.key)), value: x,
+    })), "どの音量を変えますか（Esc で閉じる）");
+    if (!ch) return;
+    const now = Number(c.get(ch.key));
+    const steps = ch.max === 1 ? [0, 0.1, 0.2, 0.35, 0.5, 0.65, 0.8, 1] : [0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
+    const level = await quick(steps.map((v) => ({
+      label: `${v === now ? "$(check) " : "      "}${pct(v)}`,
+      description: v === 0 ? "消音" : "",
+      value: String(v),
+    })), `${ch.label} の音量（いま ${pct(now)}）`);
+    if (level === undefined) continue;
+    await c.update(ch.key, Number(level), vscode.ConfigurationTarget.Global);
+  }
 }
 
 // ---------------------------------------------------------------- lifecycle
@@ -276,9 +357,27 @@ function activate(context) {
   setBar("$(play) demon", "クリックで乗車");
   bar.command = "demon.toggle";
   bar.show();
+  mixBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, -0.5);
+  mixBar.command = "demon.mixer";
+  showMixer();
+  mixBar.show();
+  keyBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, -1);
+  keyBar.command = "demon.keySource";
+  showKeySource();
+  keyBar.show();
 
   context.subscriptions.push(
-    out, bar,
+    out, bar, keyBar, mixBar,
+    vscode.commands.registerCommand("demon.keySource", pickKeySource),
+    vscode.commands.registerCommand("demon.mixer", openMixer),
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      const changed = CHANNELS.filter((c) => e.affectsConfiguration(`demon.${c.key}`)).map((c) => c.key);
+      if (changed.length) {
+        sendVolumes(changed);
+        showMixer();
+      }
+    }),
+    vscode.workspace.onDidChangeConfiguration((e) => e.affectsConfiguration("demon.keySource") && showKeySource()),
     vscode.commands.registerCommand("demon.start", start),
     vscode.commands.registerCommand("demon.stop", stop),
     vscode.commands.registerCommand("demon.toggle", () => (proc ? stop() : start())),

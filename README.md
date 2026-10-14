@@ -73,6 +73,7 @@ code --install-extension typing-demon-0.1.0.vsix
 - 路線・向き・種別・出発駅・目的駅はクイックピックで選ぶ。前回の続きもそこで選べる。
 - 打鍵は**エディタでの編集**から取る（`demon.keySource: editor`）。OS のキーフックを使わないので、
   macOS でもアクセシビリティ許可は要らない。ターミナルの打鍵も拾いたければ `global` に。
+- ステータスバーの 🔊 で、全体・電車・蝉・車内放送の音量を個別に調整できる（走行中でもその場で効く）。
 - ステータスバーに速度・次駅・残り距離。車内放送の文字は出力パネル「demon」に流れる。
 - VS Code を閉じると駅位置を保存して眠る。
 
@@ -252,6 +253,8 @@ demon train --speaker 8                        # 話者スタイル ID（既定 
 demon train --announce japanese                # 英語放送を省いて日本語のみにする
 demon train --voicevox http://127.0.0.1:10101  # AivisSpeech など互換エンジン
 demon train --voice synth                      # 今までのフォルマント合成だけ
+demon train --announce-volume 0.5              # 放送だけ半分の音量に (0〜2、既定 1)
+demon train cicada --cicada-volume 0.4         # 蝉だけ小さく (--train-volume も同様)
 ```
 
 - **日英バイリンガル放送**: 始発駅での丁寧な案内、次駅・出口案内、接近時の乗り換え路線案内、終点案内が本物の鉄道フォーマットで日英両方流れる
