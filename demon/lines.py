@@ -23,33 +23,38 @@ KMH = 1.0 / 3.6            # km/h -> m/s
 
 
 class Station:
-    __slots__ = ("name", "kana", "km")
+    __slots__ = ("name", "kana", "km", "en", "code", "transfers")
 
-    def __init__(self, name, kana, km):
+    def __init__(self, name, kana, km, en=None, code=None, transfers=None):
         self.name = name
         self.kana = kana
         self.km = float(km)
+        self.en = en or name
+        self.code = code
+        self.transfers = tuple(transfers) if transfers else ()
 
 
 class Kind:
     """A service pattern: which stations this train actually stops at."""
 
-    __slots__ = ("name", "kana", "stops")
+    __slots__ = ("name", "kana", "stops", "en")
 
-    def __init__(self, name, kana, stops=None):
+    def __init__(self, name, kana, stops=None, en=None):
         self.name = name
         self.kana = kana
         self.stops = stops          # None = every station
+        self.en = en or ("Local" if "各駅" in name else "Special Rapid" if "特別" in name else "Rapid" if "快速" in name else "Express" if "急行" in name else name)
 
 
 class Line:
     def __init__(self, key, name, kana, stations, kinds, dir_names,
                  max_kmh, jointed, tunnels=(), curves=(), crossovers=(),
-                 loop_close=None, note=""):
+                 loop_close=None, note="", en=""):
         self.key = key
         self.name = name
         self.kana = kana
-        self.stations = [Station(*s) for s in stations]
+        self.en = en or name
+        self.stations = [Station(*s) if isinstance(s, (tuple, list)) else s for s in stations]
         self.kinds = kinds
         self.dir_names = dir_names
         self.max_speed = max_kmh * KMH
@@ -119,7 +124,8 @@ class Line:
                 break
 
         entries = [RouteStop(self.stations[idx].name, self.stations[idx].kana, s,
-                             stops is None or self.stations[idx].name in stops)
+                             stops is None or self.stations[idx].name in stops,
+                             station=self.stations[idx])
                    for idx, s in walk]
         entries[0].is_stop = True
         entries[-1].is_stop = True
@@ -168,13 +174,26 @@ class Line:
 
 
 class RouteStop:
-    __slots__ = ("name", "kana", "s", "is_stop")
+    __slots__ = ("name", "kana", "s", "is_stop", "station")
 
-    def __init__(self, name, kana, s, is_stop):
+    def __init__(self, name, kana, s, is_stop, station=None):
         self.name = name
         self.kana = kana
         self.s = s
         self.is_stop = is_stop
+        self.station = station
+
+    @property
+    def en(self):
+        return self.station.en if self.station else self.name
+
+    @property
+    def code(self):
+        return self.station.code if self.station else None
+
+    @property
+    def transfers(self):
+        return self.station.transfers if self.station else ()
 
 
 class RoutePlan:
@@ -236,41 +255,45 @@ class RoutePlan:
 # 山手線 - above ground, jointed track, a station every 1.2 km, and it closes
 # on itself, so "東京 to 東京" is a legitimate 59-minute lap.
 # --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# 山手線 - above ground, jointed track, a station every 1.2 km, and it closes
+# on itself, so "東京 to 東京" is a legitimate 59-minute lap.
+# --------------------------------------------------------------------------
 YAMANOTE = Line(
-    key="yamanote", name="山手線", kana="やまのてせん",
+    key="yamanote", name="山手線", kana="やまのてせん", en="Yamanote Line",
     stations=[
-        ("東京", "とうきょう", 0.0),
-        ("神田", "かんだ", 1.3),
-        ("秋葉原", "あきはばら", 2.0),
-        ("御徒町", "おかちまち", 3.0),
-        ("上野", "うえの", 3.6),
-        ("鶯谷", "うぐいすだに", 4.7),
-        ("日暮里", "にっぽり", 5.8),
-        ("西日暮里", "にしにっぽり", 6.3),
-        ("田端", "たばた", 7.1),
-        ("駒込", "こまごめ", 8.7),
-        ("巣鴨", "すがも", 9.4),
-        ("大塚", "おおつか", 10.5),
-        ("池袋", "いけぶくろ", 12.3),
-        ("目白", "めじろ", 13.5),
-        ("高田馬場", "たかだのばば", 14.4),
-        ("新大久保", "しんおおくぼ", 15.8),
-        ("新宿", "しんじゅく", 17.1),
-        ("代々木", "よよぎ", 17.8),
-        ("原宿", "はらじゅく", 19.3),
-        ("渋谷", "しぶや", 20.5),
-        ("恵比寿", "えびす", 22.1),
-        ("目黒", "めぐろ", 23.6),
-        ("五反田", "ごたんだ", 24.8),
-        ("大崎", "おおさき", 25.7),
-        ("品川", "しながわ", 27.7),
-        ("高輪ゲートウェイ", "たかなわげーとうえい", 28.6),
-        ("田町", "たまち", 29.9),
-        ("浜松町", "はままつちょう", 31.4),
-        ("新橋", "しんばし", 32.6),
-        ("有楽町", "ゆうらくちょう", 33.7),
+        ("東京", "とうきょう", 0.0, "Tokyo", "JY-01", ["中央線", "京浜東北線", "東海道線", "新幹線"]),
+        ("神田", "かんだ", 1.3, "Kanda", "JY-02", ["中央線", "銀座線"]),
+        ("秋葉原", "あきはばら", 2.0, "Akihabara", "JY-03", ["総武線", "日比谷線", "つくばエクスプレス"]),
+        ("御徒町", "おかちまち", 3.0, "Okachimachi", "JY-04", []),
+        ("上野", "うえの", 3.6, "Ueno", "JY-05", ["常磐線", "宇都宮線", "銀座線", "日比谷線", "新幹線"]),
+        ("鶯谷", "うぐいすだに", 4.7, "Uguisudani", "JY-06", []),
+        ("日暮里", "にっぽり", 5.8, "Nippori", "JY-07", ["常磐線", "京成線"]),
+        ("西日暮里", "にしにっぽり", 6.3, "Nishi-Nippori", "JY-08", ["千代田線"]),
+        ("田端", "たばた", 7.1, "Tabata", "JY-09", ["京浜東北線"]),
+        ("駒込", "こまごめ", 8.7, "Komagome", "JY-10", ["南北線"]),
+        ("巣鴨", "すがも", 9.4, "Sugamo", "JY-11", ["三田線"]),
+        ("大塚", "おおつか", 10.5, "Otsuka", "JY-12", ["都電荒川線"]),
+        ("池袋", "いけぶくろ", 12.3, "Ikebukuro", "JY-13", ["丸ノ内線", "有楽町線", "副都心線", "東武東上線", "西武池袋線"]),
+        ("目白", "めじろ", 13.5, "Mejiro", "JY-14", []),
+        ("高田馬場", "たかだのばば", 14.4, "Takadanobaba", "JY-15", ["東西線", "西武新宿線"]),
+        ("新大久保", "しんおおくぼ", 15.8, "Shin-Okubo", "JY-16", []),
+        ("新宿", "しんじゅく", 17.1, "Shinjuku", "JY-17", ["中央線", "埼京線", "丸ノ内線", "小田急線", "京王線"]),
+        ("代々木", "よよぎ", 17.8, "Yoyogi", "JY-18", ["総武線", "大江戸線"]),
+        ("原宿", "はらじゅく", 19.3, "Harajuku", "JY-19", ["千代田線", "副都心線"]),
+        ("渋谷", "しぶや", 20.5, "Shibuya", "JY-20", ["埼京線", "銀座線", "半蔵門線", "副都心線", "東急東横線", "井の頭線"]),
+        ("恵比寿", "えびす", 22.1, "Ebisu", "JY-21", ["日比谷線", "埼京線"]),
+        ("目黒", "めぐろ", 23.6, "Meguro", "JY-22", ["三田線", "南北線", "東急目黒線"]),
+        ("五反田", "ごたんだ", 24.8, "Gotanda", "JY-23", ["浅草線", "東急池上線"]),
+        ("大崎", "おおさき", 25.7, "Osaki", "JY-24", ["埼京線", "りんかい線"]),
+        ("品川", "しながわ", 27.7, "Shinagawa", "JY-25", ["京浜東北線", "東海道線", "京急線", "新幹線"]),
+        ("高輪ゲートウェイ", "たかなわげーとうえい", 28.6, "Takanawa Gateway", "JY-26", []),
+        ("田町", "たまち", 29.9, "Tamachi", "JY-27", ["京浜東北線", "三田線"]),
+        ("浜松町", "はままつちょう", 31.4, "Hamamatsucho", "JY-28", ["東京モノレール", "大江戸線"]),
+        ("新橋", "しんばし", 32.6, "Shimbashi", "JY-29", ["銀座線", "浅草線", "ゆりかもめ"]),
+        ("有楽町", "ゆうらくちょう", 33.7, "Yurakucho", "JY-30", ["有楽町線", "日比谷線"]),
     ],
-    kinds=[Kind("各駅停車", "かくえきていしゃ")],
+    kinds=[Kind("各駅停車", "かくえきていしゃ", en="Local")],
     dir_names=("内回り", "外回り"),
     max_kmh=90.0, jointed=True,
     tunnels=(),                                   # 全線地上
@@ -285,40 +308,40 @@ YAMANOTE = Line(
 # gets to actually run, which is what the wind and the motor are for.
 # --------------------------------------------------------------------------
 CHUO_STATIONS = [
-    ("東京", "とうきょう", 0.0),
-    ("神田", "かんだ", 1.3),
-    ("御茶ノ水", "おちゃのみず", 2.6),
-    ("四ツ谷", "よつや", 6.6),
-    ("新宿", "しんじゅく", 10.3),
-    ("中野", "なかの", 14.7),
-    ("高円寺", "こうえんじ", 16.1),
-    ("阿佐ケ谷", "あさがや", 17.2),
-    ("荻窪", "おぎくぼ", 18.6),
-    ("西荻窪", "にしおぎくぼ", 20.6),
-    ("吉祥寺", "きちじょうじ", 22.5),
-    ("三鷹", "みたか", 24.1),
-    ("武蔵境", "むさしさかい", 25.7),
-    ("東小金井", "ひがしこがねい", 27.4),
-    ("武蔵小金井", "むさしこがねい", 29.1),
-    ("国分寺", "こくぶんじ", 31.6),
-    ("西国分寺", "にしこくぶんじ", 33.3),
-    ("国立", "くにたち", 35.0),
-    ("立川", "たちかわ", 36.9),
-    ("日野", "ひの", 40.6),
-    ("豊田", "とよだ", 43.1),
-    ("八王子", "はちおうじ", 47.4),
-    ("西八王子", "にしはちおうじ", 50.0),
-    ("高尾", "たかお", 53.1),
+    ("東京", "とうきょう", 0.0, "Tokyo", "JC-01", ["山手線", "京浜東北線", "東海道線", "新幹線"]),
+    ("神田", "かんだ", 1.3, "Kanda", "JC-02", ["山手線", "銀座線"]),
+    ("御茶ノ水", "おちゃのみず", 2.6, "Ochanomizu", "JC-03", ["総武線", "丸ノ内線"]),
+    ("四ツ谷", "よつや", 6.6, "Yotsuya", "JC-04", ["総武線", "丸ノ内線", "南北線"]),
+    ("新宿", "しんじゅく", 10.3, "Shinjuku", "JC-05", ["山手線", "埼京線", "丸ノ内線", "小田急線", "京王線"]),
+    ("中野", "なかの", 14.7, "Nakano", "JC-06", ["東西線"]),
+    ("高円寺", "こうえんじ", 16.1, "Koenji", "JC-07", []),
+    ("阿佐ケ谷", "あさがや", 17.2, "Asagaya", "JC-08", []),
+    ("荻窪", "おぎくぼ", 18.6, "Ogikubo", "JC-09", ["丸ノ内線"]),
+    ("西荻窪", "にしおぎくぼ", 20.6, "Nishi-Ogikubo", "JC-10", []),
+    ("吉祥寺", "きちじょうじ", 22.5, "Kichijoji", "JC-11", ["井の頭線"]),
+    ("三鷹", "みたか", 24.1, "Mitaka", "JC-12", []),
+    ("武蔵境", "むさしさかい", 25.7, "Musashi-Sakai", "JC-13", ["西武多摩川線"]),
+    ("東小金井", "ひがしこがねい", 27.4, "Higashi-Koganei", "JC-14", []),
+    ("武蔵小金井", "むさしこがねい", 29.1, "Musashi-Koganei", "JC-15", []),
+    ("国分寺", "こくぶんじ", 31.6, "Kokubunji", "JC-16", ["西武国分寺線", "西武多摩湖線"]),
+    ("西国分寺", "にしこくぶんじ", 33.3, "Nishi-Kokubunji", "JC-17", ["武蔵野線"]),
+    ("国立", "くにたち", 35.0, "Kunitachi", "JC-18", []),
+    ("立川", "たちかわ", 36.9, "Tachikawa", "JC-19", ["南武線", "青梅線", "多摩モノレール"]),
+    ("日野", "ひの", 40.6, "Hino", "JC-20", []),
+    ("豊田", "とよだ", 43.1, "Toyoda", "JC-21", []),
+    ("八王子", "はちおうじ", 47.4, "Hachioji", "JC-22", ["横浜線", "八高線", "京王線"]),
+    ("西八王子", "にしはちおうじ", 50.0, "Nishi-Hachioji", "JC-23", []),
+    ("高尾", "たかお", 53.1, "Takao", "JC-24", ["中央本線", "京王高尾線"]),
 ]
 
 CHUO = Line(
-    key="chuo", name="中央線快速", kana="ちゅうおうせんかいそく",
+    key="chuo", name="中央線快速", kana="ちゅうおうせんかいそく", en="Chuo Line",
     stations=CHUO_STATIONS,
     kinds=[
-        Kind("快速", "かいそく"),
+        Kind("快速", "かいそく", en="Rapid"),
         Kind("特別快速", "とくべつかいそく", stops={
             "東京", "神田", "御茶ノ水", "四ツ谷", "新宿", "中野", "三鷹",
-            "国分寺", "立川", "八王子", "西八王子", "高尾"}),
+            "国分寺", "立川", "八王子", "西八王子", "高尾"}, en="Special Rapid"),
     ],
     dir_names=("下り", "上り"),
     max_kmh=100.0, jointed=True,
@@ -335,29 +358,29 @@ CHUO = Line(
 # stays closed: the reverberant bed is not an event here, it is the weather.
 # --------------------------------------------------------------------------
 FUKUTOSHIN = Line(
-    key="fukutoshin", name="副都心線", kana="ふくとしんせん",
+    key="fukutoshin", name="副都心線", kana="ふくとしんせん", en="Fukutoshin Line",
     stations=[
-        ("和光市", "わこうし", 0.0),
-        ("地下鉄成増", "ちかてつなります", 2.2),
-        ("地下鉄赤塚", "ちかてつあかつか", 3.6),
-        ("平和台", "へいわだい", 5.4),
-        ("氷川台", "ひかわだい", 6.8),
-        ("小竹向原", "こたけむかいはら", 8.3),
-        ("千川", "せんかわ", 9.3),
-        ("要町", "かなめちょう", 10.3),
-        ("池袋", "いけぶくろ", 11.3),
-        ("雑司が谷", "ぞうしがや", 12.5),
-        ("西早稲田", "にしわせだ", 14.1),
-        ("東新宿", "ひがししんじゅく", 15.5),
-        ("新宿三丁目", "しんじゅくさんちょうめ", 16.6),
-        ("北参道", "きたさんどう", 17.8),
-        ("明治神宮前", "めいじじんぐうまえ", 19.0),
-        ("渋谷", "しぶや", 20.2),
+        ("和光市", "わこうし", 0.0, "Wakoshi", "F-01", ["東武東上線", "有楽町線"]),
+        ("地下鉄成増", "ちかてつなります", 2.2, "Chikatetsu-narimasu", "F-02", ["有楽町線"]),
+        ("地下鉄赤塚", "ちかてつあかつか", 3.6, "Chikatetsu-akatsuka", "F-03", ["有楽町線"]),
+        ("平和台", "へいわだい", 5.4, "Heiwadai", "F-04", ["有楽町線"]),
+        ("氷川台", "ひかわだい", 6.8, "Hikawadai", "F-05", ["有楽町線"]),
+        ("小竹向原", "こたけむかいはら", 8.3, "Kotake-mukaihara", "F-06", ["有楽町線", "西武有楽町線"]),
+        ("千川", "せんかわ", 9.3, "Senkawa", "F-07", ["有楽町線"]),
+        ("要町", "かなめちょう", 10.3, "Kanamecho", "F-08", ["有楽町線"]),
+        ("池袋", "いけぶくろ", 11.3, "Ikebukuro", "F-09", ["山手線", "丸ノ内線", "有楽町線", "東武東上線", "西武池袋線"]),
+        ("雑司が谷", "ぞうしがや", 12.5, "Zoshigaya", "F-10", ["都電荒川線"]),
+        ("西早稲田", "にしわせだ", 14.1, "Nishi-waseda", "F-11", []),
+        ("東新宿", "ひがししんじゅく", 15.5, "Higashi-shinjuku", "F-12", ["大江戸線"]),
+        ("新宿三丁目", "しんじゅくさんちょうめ", 16.6, "Shinjuku-sanchome", "F-13", ["丸ノ内線", "新宿線"]),
+        ("北参道", "きたさんどう", 17.8, "Kita-sando", "F-14", []),
+        ("明治神宮前", "めいじじんぐうまえ", 19.0, "Meiji-jingumae", "F-15", ["千代田線", "山手線"]),
+        ("渋谷", "しぶや", 20.2, "Shibuya", "F-16", ["山手線", "銀座線", "半蔵門線", "東急東横線", "田園都市線", "井の頭線"]),
     ],
     kinds=[
-        Kind("各駅停車", "かくえきていしゃ"),
+        Kind("各駅停車", "かくえきていしゃ", en="Local"),
         Kind("急行", "きゅうこう", stops={
-            "和光市", "小竹向原", "池袋", "新宿三丁目", "明治神宮前", "渋谷"}),
+            "和光市", "小竹向原", "池袋", "新宿三丁目", "明治神宮前", "渋谷"}, en="Express"),
     ],
     dir_names=("渋谷方面", "和光市方面"),
     max_kmh=90.0, jointed=False,

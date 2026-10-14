@@ -70,6 +70,7 @@ class TrainDemon(Demon):
         self._motor = Osc(60.0)
         self._brake_motor = Osc(900.0)
         self.voice = None        # a voice.Voicevox, or None for the formant announcer
+        self.biling = True
 
     def board(self, plan, x=0.0, elapsed=0.0):
         """Choose the journey. Must be called before prepare()."""
@@ -131,6 +132,11 @@ class TrainDemon(Demon):
         line = self.plan.line
         readings = {s.name: s.kana for s in line.stations}
         readings.update((k.name, k.kana) for k in line.kinds)
+        for s in line.stations:
+            if s.en:
+                readings[s.en] = s.kana
+        if line.en:
+            readings[line.en] = line.kana
         return VoicedAnnouncer(self.voice, formants, self.sr, readings)
 
     # ------------------------------------------------------- one-shot sounds
@@ -379,16 +385,17 @@ class TrainDemon(Demon):
             if not ev[2]:
                 self._speak(arrival(stop), room=0.5)
         elif kind == "terminus":
-            self._speak(terminus(ev[1]), room=0.5)
+            self._speak(terminus(ev[1], biling=self.biling), room=0.5)
             self.say(self._summary())
             self._coda = CODA
         elif kind == "depart":
             nxt, final, first = ev[1], ev[2], ev[3]
             V.trigger(self.hiss, gain=0.16, pan=-0.1, rate=1.25)
-            self._speak(departure(self.plan.kind, self.plan.dest, nxt, final)
-                        if first else next_stop(nxt, final), room=0.45)
+            self._speak(departure(self.plan.kind, self.plan.dest, nxt, final,
+                                  first=first, line=self.plan.line, biling=self.biling)
+                        if first else next_stop(nxt, final, biling=self.biling), room=0.45)
         elif kind == "approach":
-            self._speak(approaching(ev[1], ev[2]), room=0.4)
+            self._speak(approaching(ev[1], ev[2], biling=self.biling), room=0.4)
         elif kind == "held":
             self._speak(held(), room=0.55)
         elif kind == "signal_hold":

@@ -30,7 +30,7 @@ import wave
 
 import numpy as np
 
-from .announce import pa_response
+from .announce import make_chime, pa_response
 from .dsp import normalize
 
 DEFAULT_URL = "http://127.0.0.1:50021"     # VOICEVOX. AivisSpeech is :10101
@@ -124,7 +124,12 @@ class VoicedAnnouncer:
     def script(self, text):
         if self._names is None:
             return text
-        return self._names.sub(lambda m: self._readings[m.group(0)], text)
+        line = self._names.sub(lambda m: self._readings[m.group(0)], text)
+        # 駅ナンバリングの読み上げ整形 (例: JY-02 -> ジェイワイ、ゼロツー)
+        line = re.sub(r'\bJY-?0?(\d+)\b', r'ジェイワイ、\1', line)
+        line = re.sub(r'\bJC-?0?(\d+)\b', r'ジェイシー、\1', line)
+        line = re.sub(r'\bF-?0?(\d+)\b', r'エフ、\1', line)
+        return line
 
     def _load(self, text):
         line = self.script(text)
@@ -166,7 +171,7 @@ class VoicedAnnouncer:
             y = np.interp(np.arange(n) * (rate / self.sr), np.arange(y.shape[0]), y)
         return y
 
-    def render(self, phrases, room=0.35, text=None):
+    def render(self, phrases, room=0.35, text=None, with_chime=True):
         if text is None:
             return self.fallback.render(phrases, room)
         try:
@@ -175,8 +180,12 @@ class VoicedAnnouncer:
             return self.fallback.render(phrases, room)
 
         sr = self.sr
-        # Into the ceiling speaker. This runs on the speaker thread, once per
-        # sentence, so a whole-buffer FFT is fine here.
+        # 前方にサイン音（4点チャイム）を挿入（業務連絡は除く）
+        if with_chime and not ("お客様にお知らせ" in text or "お待たせ" in text):
+            chime = make_chime(sr)
+            gap = np.zeros(int(0.20 * sr), dtype=np.float64)
+            y = np.concatenate([chime, gap, y])
+
         pad = int(0.45 * sr)
         n = y.shape[0] + pad
         spec = np.fft.rfft(y, n)

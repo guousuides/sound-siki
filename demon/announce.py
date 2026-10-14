@@ -302,6 +302,27 @@ class Announcer:
         return normalize(out, 0.92)
 
 
+def make_chime(sr=44100):
+    """車内サイン音（4点チャイム）- pure arithmetic, 0 audio assets.
+
+    C5 -> E5 -> G5 -> C6 の爽やかな減衰サイン波。
+    """
+    tones = (523.25, 659.25, 783.99, 1046.50)
+    spacing = 0.20
+    unit = 0.55
+    total = int(round((spacing * len(tones) + unit) * sr))
+    y = np.zeros(total, dtype=np.float64)
+    t = np.arange(int(unit * sr)) / sr
+    for i, f in enumerate(tones):
+        start = int(i * spacing * sr)
+        tone = (np.sin(2 * np.pi * f * t) * np.exp(-t / 0.16)
+                + 0.20 * np.sin(4 * np.pi * f * t) * np.exp(-t / 0.08))
+        env = np.minimum(t / 0.004, 1.0)
+        end = start + len(t)
+        y[start:end] += tone * env * 0.35
+    return y
+
+
 # --------------------------------------------------------------------------
 # what the announcer actually says - text for the terminal, kana for the voice
 # --------------------------------------------------------------------------
@@ -310,34 +331,82 @@ def _side(name):
     return "右" if sum(ord(c) for c in name) % 2 else "左"
 
 
-def departure(kind, dest, nxt, final=False):
-    text = "この電車は、%s、%sゆきです。次は、%s。" % (kind.name, dest.name, nxt.name)
-    kana = [("このでんしゃは、", "plain"), (kind.kana + "、", "plain"),
-            (dest.kana + "ゆきです。", "plain"),
-            ("つぎは、", "lead"), (nxt.kana + "。", "name")]
-    if final:
-        text = "この電車は、%s、%sゆきです。次は、終点、%s。" % (
-            kind.name, dest.name, nxt.name)
-        kana = kana[:3] + [("つぎは、しゅうてん、", "lead"), (nxt.kana + "。", "name")]
+def departure(kind, dest, nxt, final=False, first=False, line=None, biling=True):
+    side = _side(nxt.name)
+    side_en = "left" if side == "左" else "right"
+    nxt_en = getattr(nxt, "en", nxt.name)
+    dest_en = getattr(dest, "en", dest.name)
+    line_en = getattr(line, "en", "train")
+
+    if first:
+        text = (f"本日も、電車をご利用くださいまして、ありがとうございます。"
+                f"この電車は、{kind.name}、{dest.name}ゆきです。"
+                f"次は、{nxt.name}、{nxt.name}。お出口は、{side}側です。")
+        if biling:
+            text += (f" This is the {line_en} train bound for {dest_en}."
+                     f" The next station is {nxt_en}. The doors on the {side_en} side will open.")
+        kana = [("ほんじつも、でんしゃをごりようくださいまして、ありがとうございます。", "plain"),
+                ("このでんしゃは、", "plain"), (kind.kana + "、", "plain"),
+                (dest.kana + "ゆきです。", "plain"),
+                ("つぎは、", "lead"), (nxt.kana + "、", "name"), (nxt.kana + "。", "name"),
+                ("おでぐちは%sがわです。" % ("みぎ" if side == "右" else "ひだり"), "end")]
+    else:
+        lead_jp = "次は、終点、" if final else "次は、"
+        text = f"{lead_jp}{nxt.name}、{nxt.name}。お出口は、{side}側です。"
+        if biling:
+            lead_en = "The next station is the terminal," if final else "The next station is"
+            text += f" {lead_en} {nxt_en}. The doors on the {side_en} side will open."
+        lead_kana = "つぎは、しゅうてん、" if final else "つぎは、"
+        kana = [(lead_kana, "lead"), (nxt.kana + "、", "name"), (nxt.kana + "。", "name"),
+                ("おでぐちは%sがわです。" % ("みぎ" if side == "右" else "ひだり"), "end")]
     return text, kana
 
 
-def next_stop(nxt, final=False):
+def next_stop(nxt, final=False, biling=True):
+    side = _side(nxt.name)
+    side_en = "left" if side == "左" else "right"
+    nxt_en = getattr(nxt, "en", nxt.name)
+
+    lead_jp = "次は、終点、" if final else "次は、"
+    text = f"{lead_jp}{nxt.name}、{nxt.name}。お出口は、{side}側です。"
+    if biling:
+        lead_en = "The next station is the terminal," if final else "The next station is"
+        text += f" {lead_en} {nxt_en}. The doors on the {side_en} side will open."
+    lead_kana = "つぎは、しゅうてん、" if final else "つぎは、"
+    kana = [(lead_kana, "lead"), (nxt.kana + "、", "name"), (nxt.kana + "。", "name"),
+            ("おでぐちは%sがわです。" % ("みぎ" if side == "右" else "ひだり"), "end")]
+    return text, kana
+
+
+def approaching(stop, final=False, biling=True):
+    side = _side(stop.name)
+    side_en = "left" if side == "左" else "right"
+    stop_en = getattr(stop, "en", stop.name)
+    transfers = getattr(stop, "transfers", ())
+
     if final:
-        return ("次は、終点、%s。" % nxt.name,
-                [("つぎは、しゅうてん、", "lead"), (nxt.kana + "。", "name")])
-    return ("次は、%s。" % nxt.name,
-            [("つぎは、", "lead"), (nxt.kana + "。", "name")])
-
-
-def approaching(stop, final=False):
-    head = "まもなく、終点、%s" % stop.name if final else "まもなく、%s" % stop.name
-    text = "%s、%sです。お出口は%s側です。" % (head, stop.name, _side(stop.name))
-    lead = "まもなく、しゅうてん、" if final else "まもなく、"
-    return text, [(lead, "lead"), (stop.kana + "、", "name"),
-                  (stop.kana + "です。", "plain"),
-                  ("おでぐちは%sがわです。" % ("みぎ" if _side(stop.name) == "右" else "ひだり"),
-                   "end")]
+        text = (f"まもなく、終点、{stop.name}、{stop.name}です。お出口は、{side}側です。"
+                "本日も、電車をご利用くださいまして、ありがとうございました。")
+        if biling:
+            text += (f" Soon arriving at the terminal, {stop_en}."
+                     f" The doors on the {side_en} side will open."
+                     " Thank you for traveling with us.")
+        kana = [("まもなく、しゅうてん、", "lead"),
+                (stop.kana + "、", "name"), (stop.kana + "です。", "name"),
+                ("おでぐちは%sがわです。" % ("みぎ" if side == "右" else "ひだり"), "plain"),
+                ("ほんじつも、でんしゃをごりようくださいまして、ありがとうございました。", "end")]
+    else:
+        text = f"まもなく、{stop.name}、{stop.name}です。お出口は、{side}側です。"
+        if transfers:
+            text += " %sはお乗り換えです。" % "、".join(transfers[:3])
+        if biling:
+            text += f" Soon arriving at {stop_en}. The doors on the {side_en} side will open."
+            if transfers:
+                text += f" Please change here for the {transfers[0]}."
+        kana = [("まもなく、", "lead"),
+                (stop.kana + "、", "name"), (stop.kana + "です。", "name"),
+                ("おでぐちは%sがわです。" % ("みぎ" if side == "右" else "ひだり"), "end")]
+    return text, kana
 
 
 def arrival(stop):
@@ -345,15 +414,19 @@ def arrival(stop):
             [(stop.kana + "、", "name"), (stop.kana + "です。", "end")])
 
 
-def terminus(stop):
-    return ("終点、%s。ご乗車ありがとうございました。" % stop.name,
-            [("しゅうてん、", "lead"), (stop.kana + "。", "name"),
-             ("ごじょうしゃありがとうございました。", "end")])
+def terminus(stop, biling=True):
+    stop_en = getattr(stop, "en", stop.name)
+    text = f"終点、{stop.name}、{stop.name}。ご乗車ありがとうございました。"
+    if biling:
+        text += f" Terminal, {stop_en}. Thank you for traveling with us."
+    kana = [("しゅうてん、", "lead"), (stop.kana + "、", "name"), (stop.kana + "。", "name"),
+            ("ごじょうしゃありがとうございました。", "end")]
+    return text, kana
 
 
 def held():
     return ("お客様にお知らせいたします。ただいま、お客様対応のため、"
-            "当駅にてしばらく停車しております。",
+            "当駅にてしばらく停車しております。運転再開まで今しばらくお待ちください。",
             [("おきゃくさまにおしらせいたします。", "plain"),
              ("ただいま、おきゃくさまたいおうのため、", "plain"),
              ("とうえきにてしばらくていしゃしております。", "end")])
