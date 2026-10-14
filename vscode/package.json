@@ -126,6 +126,16 @@
           "default": "auto",
           "description": "車内放送の声"
         },
+        "demon.autoStartVoicevox": {
+          "type": "boolean",
+          "default": true,
+          "description": "乗車時に VOICEVOX エンジンが止まっていたら自動で起動する（VS Code を閉じると一緒に止める）"
+        },
+        "demon.voicevoxEnginePath": {
+          "type": "string",
+          "default": "",
+          "description": "VOICEVOX エンジン (vv-engine の run.exe / run) の場所。空なら標準のインストール先を探す"
+        },
         "demon.speaker": {
           "type": "integer",
           "default": 3,

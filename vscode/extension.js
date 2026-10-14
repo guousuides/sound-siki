@@ -167,6 +167,73 @@ async function board(py) {
   return args;
 }
 
+// ----------------------------------------------------------------- voicevox
+// 乗車時にエンジンが止まっていたら、インストール済みの VOICEVOX から裏で起こす。
+// 通信は 127.0.0.1 だけ。見つからなければ何もせず、Python 側がフォルマントに戻る。
+const VOICEVOX_PORT = 50021;
+let voicevoxProc = null;
+
+function voicevoxAlive() {
+  return new Promise((resolve) => {
+    const req = require("http").get({ host: "127.0.0.1", port: VOICEVOX_PORT, path: "/version", timeout: 800 }, (res) => {
+      res.resume();
+      resolve(res.statusCode === 200);
+    });
+    req.on("timeout", () => req.destroy());
+    req.on("error", () => resolve(false));
+  });
+}
+
+function findVoicevoxEngine() {
+  const custom = cfg().get("voicevoxEnginePath");
+  if (custom) return fs.existsSync(custom) ? custom : null;
+  const exe = IS_WIN ? "run.exe" : "run";
+  const candidates = [];
+  if (IS_WIN) {
+    const local = process.env.LOCALAPPDATA || "";
+    candidates.push(path.join(local, "Programs", "VOICEVOX", "vv-engine", exe));
+    candidates.push(path.join(process.env.ProgramFiles || "C:\\Program Files", "VOICEVOX", "vv-engine", exe));
+    const winget = path.join(local, "Microsoft", "WinGet", "Packages");
+    try {
+      for (const pkg of fs.readdirSync(winget)) {
+        if (!/voicevox/i.test(pkg)) continue;
+        candidates.push(path.join(winget, pkg, "VOICEVOX", "vv-engine", exe));
+        candidates.push(path.join(winget, pkg, "vv-engine", exe));
+      }
+    } catch (_) { /* winget を使っていない */ }
+  } else if (process.platform === "darwin") {
+    for (const apps of ["/Applications", path.join(require("os").homedir(), "Applications")]) {
+      candidates.push(path.join(apps, "VOICEVOX.app", "Contents", "Resources", "vv-engine", exe));
+    }
+  } else {
+    candidates.push(path.join(require("os").homedir(), ".voicevox", "VOICEVOX", "vv-engine", exe));
+  }
+  return candidates.find((p) => fs.existsSync(p)) || null;
+}
+
+async function ensureVoicevox() {
+  if (await voicevoxAlive()) return true;
+  const engine = findVoicevoxEngine();
+  if (!engine) {
+    out.appendLine("VOICEVOX が見つからないので、車内放送は合成音声で喋ります（設定 demon.voicevoxEnginePath で場所を指定できます）");
+    return false;
+  }
+  setBar("$(loading~spin) demon", "VOICEVOX を起動中…");
+  out.appendLine(`VOICEVOX を起動中: ${engine}`);
+  const args = ["--host", "127.0.0.1", "--port", String(VOICEVOX_PORT)];
+  if (IS_WIN) args.push("--use_gpu");          // DirectML。GPU が無ければエンジンが CPU に落とす
+  voicevoxProc = cp.spawn(engine, args, { cwd: path.dirname(engine), windowsHide: true, stdio: "ignore" });
+  voicevoxProc.on("error", (e) => out.appendLine(`VOICEVOX を起動できませんでした: ${e.message}`));
+  voicevoxProc.on("close", () => { voicevoxProc = null; });
+  for (let i = 0; i < 60; i++) {               // 初回はモデルの読み込みで 10 秒以上かかる
+    await new Promise((r) => setTimeout(r, 500));
+    if (await voicevoxAlive()) return true;
+    if (!voicevoxProc) break;
+  }
+  out.appendLine("VOICEVOX の起動を待ちきれませんでした。車内放送は合成音声で喋ります");
+  return false;
+}
+
 // -------------------------------------------------------------- the daemon
 function setBar(text, tooltip) {
   bar.text = text;
@@ -207,6 +274,10 @@ async function start(opts = {}) {
     }
     if (!boarding) return;
     args = args.concat(boarding);
+  }
+
+  if (demons.includes("train") && c.get("voice") !== "synth" && c.get("autoStartVoicevox")) {
+    await ensureVoicevox();
   }
 
   out.appendLine("");
@@ -395,7 +466,10 @@ function activate(context) {
 }
 
 function deactivate() {
-  return stop();   // 駅で停めて、続きを保存してから眠る
+  // 駅で停めて、続きを保存してから眠る。自分で起こした VOICEVOX も一緒に止める
+  return stop().then(() => {
+    if (voicevoxProc) voicevoxProc.kill();
+  });
 }
 
 module.exports = { activate, deactivate };
