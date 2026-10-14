@@ -38,6 +38,7 @@ from ..dsp import (Osc, StereoBed, Voices, add_panned, band, clamp,
 from ..keywatch import ENTER
 from ..lines import LINES
 from ..route import DONE, DWELL, RAIL, Run
+from ..voice import VoicedAnnouncer
 from .base import Demon, bar
 
 AXLE_SPACING = 2.4       # m, between the two axles of one bogie
@@ -68,6 +69,8 @@ class TrainDemon(Demon):
         self._speak_free = 0.0
         self._motor = Osc(60.0)
         self._brake_motor = Osc(900.0)
+        self.voice = None        # a voice.Voicevox, or None for the formant announcer
+        self.biling = True
 
     def board(self, plan, x=0.0, elapsed=0.0):
         """Choose the journey. Must be called before prepare()."""
@@ -113,12 +116,28 @@ class TrainDemon(Demon):
         self.voices = Voices(limit=72)
         self.run = Run(self.plan, self.rng, *self._start)
         self._prev_x = self.run.x
-        self.speaker = Speaker(Announcer(sr, rng).prepare()).start()
+        self.speaker = Speaker(self._announcer()).start()
         # A welded-rail subway does not really do this; see README. It gets the
         # joints anyway, at less than half voice, because a train demon with no
         # gatan-goton in it is not a train demon.
         self._joint_gain = 1.0 if self.plan.line.jointed else 0.42
         return self
+
+    def _announcer(self):
+        formants = Announcer(self.sr, self.rng).prepare()
+        if self.voice is None:
+            return formants
+        # The engine reads kanji well and station names badly, so it gets the
+        # names as the readings the line data already carries.
+        line = self.plan.line
+        readings = {s.name: s.kana for s in line.stations}
+        readings.update((k.name, k.kana) for k in line.kinds)
+        for s in line.stations:
+            if s.en:
+                readings[s.en] = s.kana
+        if line.en:
+            readings[line.en] = line.kana
+        return VoicedAnnouncer(self.voice, formants, self.sr, readings)
 
     # ------------------------------------------------------- one-shot sounds
     def _make_clack(self, var):
@@ -353,7 +372,7 @@ class TrainDemon(Demon):
     def _speak(self, made, room=0.35):
         text, kana = made
         self.say("♪ " + text)
-        self.speaker.request(kana, room)
+        self.speaker.request(kana, room, text)
 
     def _handle(self, ev, sp):
         kind = ev[0]
@@ -366,16 +385,17 @@ class TrainDemon(Demon):
             if not ev[2]:
                 self._speak(arrival(stop), room=0.5)
         elif kind == "terminus":
-            self._speak(terminus(ev[1]), room=0.5)
+            self._speak(terminus(ev[1], biling=self.biling), room=0.5)
             self.say(self._summary())
             self._coda = CODA
         elif kind == "depart":
             nxt, final, first = ev[1], ev[2], ev[3]
             V.trigger(self.hiss, gain=0.16, pan=-0.1, rate=1.25)
-            self._speak(departure(self.plan.kind, self.plan.dest, nxt, final)
-                        if first else next_stop(nxt, final), room=0.45)
+            self._speak(departure(self.plan.kind, self.plan.dest, nxt, final,
+                                  first=first, line=self.plan.line, biling=self.biling)
+                        if first else next_stop(nxt, final, biling=self.biling), room=0.45)
         elif kind == "approach":
-            self._speak(approaching(ev[1], ev[2]), room=0.4)
+            self._speak(approaching(ev[1], ev[2], biling=self.biling), room=0.4)
         elif kind == "held":
             self._speak(held(), room=0.55)
         elif kind == "signal_hold":

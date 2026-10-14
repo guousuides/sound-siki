@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "typing-demon"
+dynamic = ["version"]
+description = "Keystroke-fed ambient soundscapes (trains, cicadas) synthesised on the spot - zero audio assets."
+readme = "README.en.md"
+license = { text = "MIT" }
+authors = [{ name = "guousui" }]
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.24",
+    "sounddevice>=0.4.6",
+    "pynput>=1.7.6",
+]
+keywords = ["ambient", "soundscape", "typing", "focus", "train", "synthesis"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Multimedia :: Sound/Audio :: Sound Synthesis",
+]
+
+[project.urls]
+Homepage = "https://github.com/guousuides/sound-siki"
+Issues = "https://github.com/guousuides/sound-siki/issues"
+
+[project.scripts]
+demon = "demon.__main__:main"
+
+[tool.setuptools]
+packages = ["demon", "demon.demons"]
+
+[tool.setuptools.dynamic]
+version = { attr = "demon.__version__" }

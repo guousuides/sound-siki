@@ -125,6 +125,56 @@ class KeyWatcher:
         return out
 
 
+class StdinKeys:
+    """Keystroke categories fed over stdin, one per line - for the VS Code
+    extension, which watches the editor instead of hooking the whole OS.
+
+    Each line is one of c/s/b/e (char, space, backspace, enter); q or EOF
+    asks the daemon to stop. The extension already reduced the edit to a
+    category before sending it, so the privacy rule holds end to end.
+    """
+
+    CODES = {"c": CHAR, "s": SPACE, "b": BACKSPACE, "e": ENTER}
+
+    def __init__(self, stream=None, collect=True):
+        import sys
+        self._stream = stream or sys.stdin
+        self._collect = collect
+        self._queue = deque(maxlen=1024)
+        self.quit = threading.Event()
+
+    def start(self):
+        t = threading.Thread(target=self._read, daemon=True)
+        t.start()
+        return self
+
+    def _read(self):
+        try:
+            for raw in self._stream:
+                for ch in raw.strip():
+                    if ch == "q":
+                        self.quit.set()
+                        return
+                    kind = self.CODES.get(ch)
+                    if kind is not None and self._collect:
+                        self._queue.append(kind)
+        except (OSError, ValueError):
+            pass
+        self.quit.set()
+
+    def stop(self):
+        pass
+
+    def poll(self, dt):
+        out = []
+        try:
+            while True:
+                out.append(self._queue.popleft())
+        except IndexError:
+            pass
+        return out
+
+
 class ScriptedTypist:
     """Deterministic fake typist, for offline rendering and for `--demo`.
 

@@ -1,0 +1,129 @@
+{
+  "name": "typing-demon",
+  "displayName": "demon — 打鍵を餌にする環境音",
+  "description": "エディタでの打鍵リズムで電車と蝉の環境音をその場で合成する。音声ファイル 0 バイト。",
+  "version": "0.1.0",
+  "publisher": "guousui",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/guousuides/sound-siki",
+    "directory": "vscode"
+  },
+  "homepage": "https://github.com/guousuides/sound-siki#readme",
+  "bugs": {
+    "url": "https://github.com/guousuides/sound-siki/issues"
+  },
+  "keywords": [
+    "ambient",
+    "soundscape",
+    "typing",
+    "focus",
+    "train",
+    "環境音",
+    "電車"
+  ],
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "demon.start",
+        "title": "乗車する (Start)",
+        "category": "demon"
+      },
+      {
+        "command": "demon.stop",
+        "title": "降りる (Stop)",
+        "category": "demon"
+      },
+      {
+        "command": "demon.toggle",
+        "title": "乗る／降りる (Toggle)",
+        "category": "demon"
+      },
+      {
+        "command": "demon.setup",
+        "title": "Python 環境を作り直す",
+        "category": "demon"
+      }
+    ],
+    "configuration": {
+      "title": "demon",
+      "properties": {
+        "demon.pythonPath": {
+          "type": "string",
+          "default": "",
+          "description": "venv を作るのに使う Python 3.9+。空なら自動 (Windows: py -3 / python, macOS: python3)。"
+        },
+        "demon.demons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "train",
+              "cicada"
+            ]
+          },
+          "default": [
+            "train"
+          ],
+          "description": "起こすデーモン"
+        },
+        "demon.volume": {
+          "type": "number",
+          "default": 0.65,
+          "minimum": 0,
+          "maximum": 1,
+          "description": "音量"
+        },
+        "demon.voice": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "voicevox",
+            "synth"
+          ],
+          "default": "auto",
+          "description": "車内放送の声"
+        },
+        "demon.speaker": {
+          "type": "integer",
+          "default": 3,
+          "description": "VOICEVOX の話者スタイル ID"
+        },
+        "demon.keySource": {
+          "type": "string",
+          "enum": [
+            "editor",
+            "global"
+          ],
+          "default": "editor",
+          "enumDescriptions": [
+            "VS Code のエディタでの入力だけを見る (権限不要)",
+            "OS 全体のキーボードを監視する (pynput。macOS はアクセシビリティ許可が必要)"
+          ],
+          "description": "打鍵をどこから取るか"
+        },
+        "demon.noExit": {
+          "type": "boolean",
+          "default": false,
+          "description": "目的駅に着いても終了しない"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "bundle": "node scripts/bundle.js",
+    "vscode:prepublish": "node scripts/bundle.js",
+    "package": "npx @vscode/vsce package"
+  }
+}

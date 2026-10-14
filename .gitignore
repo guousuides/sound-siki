@@ -2,3 +2,7 @@
 __pycache__/
 *.pyc
 *.wav
+.DS_Store
+*.egg-info/
+build/
+dist/
