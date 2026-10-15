@@ -6,3 +6,15 @@ __pycache__/
 *.egg-info/
 build/
 dist/
+
+# Local notes and secrets (never commit)
+*.vsix
+.demon-publish-tokens*
+*tokens*.txt
+.env
+.env.*
+memo*
+MEMO*
+notes/
+*.local.md
+*.memo.txt

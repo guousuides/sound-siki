@@ -45,8 +45,8 @@ class _Voice:
 
 class CicadaDemon(Demon):
     name = "cicada"
-    title = "蝉デーモン"
-    blurb = "集中が続くほど個体数が増える蝉時雨。Backspaceで蝉が驚いて鳴き止む。"
+    title = "蝉サウンド"
+    blurb = "集中が続くほど心地よく広がる蝉時雨。Backspaceで近くの蝉が驚いて鳴き止みます。"
 
     def __init__(self, sr, rng):
         super().__init__(sr, rng)
