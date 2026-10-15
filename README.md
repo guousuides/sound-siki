@@ -75,6 +75,11 @@ pip install -e .
 
 ### VS Code 拡張機能として利用する場合（Windows / macOS）
 
+> [!NOTE]
+> **Marketplace 未公開について**  
+> 本拡張機能は現在、Visual Studio Marketplace には公開していません。  
+> ご利用の際は、本リポジトリから VSIX パッケージをビルド（またはダウンロード）し、手動でインストールしていただく形となります。
+
 `vscode/` フォルダに拡張機能が入っています。ターミナルを開かなくても、VS Code のステータスバーにある **▶ sound-siki** をクリックするだけで乗車できます。
 
 ```sh

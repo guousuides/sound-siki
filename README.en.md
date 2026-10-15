@@ -77,6 +77,11 @@ pip install -e .
 
 ### As a VS Code extension (Windows / macOS)
 
+> [!NOTE]
+> **Marketplace Availability**  
+> This extension is currently **not published to the Visual Studio Marketplace**.  
+> To use it, please build the `.vsix` package from this repository and install it manually.
+
 The extension lives in `vscode/`. You can board right from your status bar by clicking **▶ sound-siki**:
 
 ```sh
