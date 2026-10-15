@@ -50,8 +50,8 @@ HORN_COOLDOWN = (70.0, 190.0)
 
 class TrainDemon(Demon):
     name = "train"
-    title = "電車デーモン"
-    blurb = "路線と行き先を選んで乗る各駅停車。打鍵が主幹制御器、着くまで降りられない。"
+    title = "電車サウンド"
+    blurb = "路線と行き先を選んで乗る電車の旅。タイピングのリズムに合わせて走ります。"
 
     def __init__(self, sr, rng):
         super().__init__(sr, rng)

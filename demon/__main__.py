@@ -1,12 +1,12 @@
-"""CLI for the typing demon.
+"""CLI for sound-siki.
 
-    python -m demon                            # 路線を選んで乗る
-    python -m demon train cicada               # 電車 + 蝉
-    python -m demon --line chuo --from 東京 --to 高尾    # 選択を飛ばす
-    python -m demon --lines                    # 路線一覧
-    python -m demon --list                     # デーモン一覧
-    python -m demon train --demo               # 監視せず台本どおりに鳴らす
-    python -m demon train --render out.wav --seconds 60
+    sound-siki                                 # 路線を選んで乗車
+    sound-siki train cicada                    # 電車 + 蝉
+    sound-siki --line chuo --from 東京 --to 高尾 # 選択をスキップ
+    sound-siki --lines                         # 路線一覧
+    sound-siki --list                          # サウンド（環境音）一覧
+    sound-siki train --demo                    # キー監視なしでデモ走行
+    sound-siki train --render out.wav --seconds 60
 """
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ from .keywatch import KeyWatcher, ScriptedTypist, StdinKeys
 from .lines import LINES, ORDER
 from .route import DONE
 
-BANNER = "demon %s - 打鍵を餌にする環境音デーモン" % __version__
+BANNER = "sound-siki %s - タイピングのリズムに寄り添う環境音ジェネレーター" % __version__
 
 
 def _utf8_stdout():
@@ -35,10 +35,10 @@ def _utf8_stdout():
 
 
 def build_args():
-    p = argparse.ArgumentParser(prog="demon", description=BANNER)
+    p = argparse.ArgumentParser(prog="sound-siki", description=BANNER)
     p.add_argument("demons", nargs="*", default=None,
-                   help="どのデーモンを起こすか (既定: train)")
-    p.add_argument("--list", action="store_true", help="デーモン一覧")
+                   help="どの環境音を鳴らすか (既定: train / 例: train cicada)")
+    p.add_argument("--list", action="store_true", help="環境音（サウンド）一覧")
     p.add_argument("--lines", action="store_true", help="路線一覧")
     p.add_argument("--devices", action="store_true", help="音声出力デバイス一覧")
     p.add_argument("--device", default=None, help="出力デバイス番号または名前")
@@ -121,7 +121,7 @@ def list_demons():
         print("  %-8s %s" % (name, cls.title))
         print("           %s" % cls.blurb)
     print()
-    print("  例: python -m demon train cicada")
+    print("  例: sound-siki train cicada")
 
 
 def list_lines():
@@ -135,7 +135,7 @@ def list_lines():
         print("             種別: %s" % "／".join(k.name for k in l.kinds))
         print("             %s" % " ".join(s.name for s in l.stations))
     print()
-    print("  例: python -m demon --line fukutoshin --from 小竹向原 --to 渋谷 --kind 急行")
+    print("  例: sound-siki --line fukutoshin --from 小竹向原 --to 渋谷 --kind 急行")
 
 
 def list_devices():
@@ -153,7 +153,7 @@ def make_demons(names, sr, seed):
     demons = []
     for name in names:
         if name not in REGISTRY:
-            raise SystemExit("知らないデーモンです: %s  (--list で一覧)" % name)
+            raise SystemExit("未対応の環境音です: %s  (--list で一覧)" % name)
         demons.append(REGISTRY[name](sr, rng))
     return demons
 
@@ -346,13 +346,13 @@ def main(argv=None):
         return 0
 
     for d in demons:
-        print("  %s を起こしました - %s" % (d.title, d.blurb))
+        print("  %s を開始しました - %s" % (d.title, d.blurb))
     if watcher is not None or control is not None:
-        print("  打鍵は「速さ・間・訂正」だけを見ます。文字は一切記録しません。")
+        print("  打鍵は「速さ・間・訂正」のリズムだけを受け取ります。入力内容や文字は一切記録しません。")
     else:
         print("  デモモード: キーボードは監視せず、台本どおりに打鍵を再現します。")
     if train is not None and not headless:
-        print("  打鍵が主幹制御器です。手を止めると惰行し、やがて停まります。")
+        print("  タイピングのリズムが電車の動力になります。手を止めると惰行し、やがて停車します。")
     if control is None:
         print("  Ctrl+C で終了")
     print()
@@ -407,7 +407,7 @@ def main(argv=None):
             left = (train.plan.length - train.run.x) / 1000.0
             print("%s まで残り %.1f km。続きは次回。" % (train.plan.dest.name, left))
 
-    print("デーモンは眠りました。")
+    print("環境音の再生を終了しました。お疲れさまでした。")
     return 0
 
 

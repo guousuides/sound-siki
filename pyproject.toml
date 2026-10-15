@@ -3,10 +3,10 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "typing-demon"
+name = "sound-siki"
 dynamic = ["version"]
-description = "Keystroke-fed ambient soundscapes (trains, cicadas) synthesised on the spot - zero audio assets."
-readme = "README.en.md"
+description = "Ambient soundscapes (trains, cicadas) synthesised in real time from your typing rhythm - zero audio assets."
+readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "guousui" }]
 requires-python = ">=3.9"
@@ -30,6 +30,8 @@ Homepage = "https://github.com/guousuides/sound-siki"
 Issues = "https://github.com/guousuides/sound-siki/issues"
 
 [project.scripts]
+sound-siki = "demon.__main__:main"
+siki = "demon.__main__:main"
 demon = "demon.__main__:main"
 
 [tool.setuptools]

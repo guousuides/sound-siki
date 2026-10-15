@@ -1,7 +1,7 @@
 {
   "name": "typing-demon",
-  "displayName": "demon — 打鍵を餌にする環境音",
-  "description": "エディタでの打鍵リズムで電車と蝉の環境音をその場で合成する。音声ファイル 0 バイト。",
+  "displayName": "sound-siki — タイピングのリズムに寄り添う環境音",
+  "description": "エディタの打鍵リズムに合わせて電車や蝉などの環境音をリアルタイム合成します。音声ファイル 0 バイト。",
   "version": "0.1.0",
   "publisher": "guousui",
   "license": "MIT",
@@ -38,36 +38,36 @@
       {
         "command": "demon.start",
         "title": "乗車する (Start)",
-        "category": "demon"
+        "category": "sound-siki"
       },
       {
         "command": "demon.stop",
         "title": "降りる (Stop)",
-        "category": "demon"
+        "category": "sound-siki"
       },
       {
         "command": "demon.toggle",
         "title": "乗る／降りる (Toggle)",
-        "category": "demon"
+        "category": "sound-siki"
       },
       {
         "command": "demon.keySource",
         "title": "打鍵の拾い方を切り替える (エディタ／PC 全体)",
-        "category": "demon"
+        "category": "sound-siki"
       },
       {
         "command": "demon.mixer",
         "title": "音量ミキサー (全体・電車・蝉・車内放送)",
-        "category": "demon"
+        "category": "sound-siki"
       },
       {
         "command": "demon.setup",
         "title": "Python 環境を作り直す",
-        "category": "demon"
+        "category": "sound-siki"
       }
     ],
     "configuration": {
-      "title": "demon",
+      "title": "sound-siki",
       "properties": {
         "demon.pythonPath": {
           "type": "string",
@@ -86,7 +86,7 @@
           "default": [
             "train"
           ],
-          "description": "起こすデーモン"
+          "description": "再生する環境音（train: 電車, cicada: 蝉）"
         },
         "demon.volume": {
           "type": "number",

@@ -13,7 +13,7 @@ import numpy as np
 
 class Demon:
     name = "demon"
-    title = "デーモン"
+    title = "環境音"
     blurb = ""
 
     def __init__(self, sr, rng):
@@ -23,7 +23,7 @@ class Demon:
         # display thread drains, which a deque does safely without a lock.
         self.log = deque(maxlen=64)
         self.finished = False
-        self.gain = 1.0          # このデーモンだけの音量倍率 (0..2)。ミキサが掛ける
+        self.gain = 1.0          # このサウンドだけの音量倍率 (0..2)。ミキサが掛ける
 
     def say(self, text):
         self.log.append(text)
