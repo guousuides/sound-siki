@@ -24,6 +24,7 @@ import io
 import json
 import os
 import re
+import time
 import urllib.parse
 import urllib.request
 import wave
@@ -35,6 +36,7 @@ from .dsp import normalize
 
 DEFAULT_URL = "http://127.0.0.1:50021"     # VOICEVOX. AivisSpeech is :10101
 DEFAULT_SPEAKER = 3                         # ずんだもん（ノーマル）
+RETRY_AFTER = 30.0                          # seconds before asking an away engine again
 
 # An announcer reads at an even pace and does not perform.
 QUERY = {"speedScale": 1.05, "intonationScale": 0.9,
@@ -114,6 +116,7 @@ class VoicedAnnouncer:
         self.fallback = fallback
         self.sr = sr
         self.alive = engine.online     # off: only what is already in the cache
+        self._retry_at = 0.0           # when to ask an away engine again
         self._names = None
         self._readings = {}
         if readings:
@@ -143,11 +146,18 @@ class VoicedAnnouncer:
         except OSError:
             pass
         if not self.alive:
-            raise ConnectionError("engine is away")
+            # The engine may have come back (restarted, or just finished
+            # loading). Ask again now and then rather than giving up for good.
+            if time.monotonic() < self._retry_at or not self.engine.probe():
+                self._retry_at = time.monotonic() + RETRY_AFTER
+                raise ConnectionError("engine is away")
+            self.alive = True
         try:
             data = self.engine.wav(line, self.sr)
         except Exception:
-            self.alive = False       # stop waiting on it for the rest of the ride
+            # Stop waiting on it for a while, not for the rest of the ride.
+            self.alive = False
+            self._retry_at = time.monotonic() + RETRY_AFTER
             raise
         try:
             os.makedirs(cache_dir(), exist_ok=True)
