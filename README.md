@@ -39,6 +39,15 @@ YouTube などの動画で環境音を流すのも便利ですが、通信量を
 
 ![VS Code 拡張機能デモ](assets/demo_vscode.png)
 
+### 機能ごとのデモ動画（音声付き）
+Antigravity IDE（VS Code 互換エディタ）で拡張機能を実際に使っている様子を、機能ごとに短く収録しました。サムネイルをクリックすると動画が開きます（**音声付きなので、ぜひ音を出してご覧ください**）。
+
+| | |
+|---|---|
+| [![路線を選んで乗車](assets/videos/01-board.jpg)](assets/videos/01-board.mp4)<br>**1. 好きな路線を選んで「移動」を始める**<br>ステータスバーから乗車。路線・種別・駅を選ぶと「目安 15分」が表示され、発車ベルとともに出発します。 | [![タイピングがアクセル](assets/videos/02-accelerate.jpg)](assets/videos/02-accelerate.mp4)<br>**2. タイピングが電車の「アクセル」になる**<br>速く打つほどじわじわ加速。手を止めると惰行し、やがて運転士がやさしくブレーキをかけます。 |
+| [![サボると停車](assets/videos/03-held.jpg)](assets/videos/03-held.mp4)<br>**3. サボると電車が止まり、車内放送が流れる**<br>駅で手を止めているとドアは開いたまま。「お客様対応のため…」の放送が、作業への復帰をそっと促します。 | [![駅で区切る](assets/videos/04-stations.jpg)](assets/videos/04-stations.mp4)<br>**4. 「時間」ではなく「駅」で区切る**<br>打ち続けていても、運転士が駅にピタリと止めてくれます。駅に着いたらひと休み。 |
+| [![車内アナウンス](assets/videos/05-announce.jpg)](assets/videos/05-announce.mp4)<br>**5. 耳でわかるリアルな車内アナウンス**<br>VOICEVOX 連携で、駅名や乗り換え案内を日本語＋英語の肉声で読み上げます。 | [![蝉と風鈴](assets/videos/06-cicada.jpg)](assets/videos/06-cicada.mp4)<br>**6. 「蝉と風鈴」モード**<br>打ち続けるほど蝉が1匹ずつ増えて蝉時雨に。Enter キーで風鈴が鳴ります。 |
+
 ---
 
 ## インストール
