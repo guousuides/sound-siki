@@ -4,6 +4,7 @@
   "description": "エディタの打鍵リズムに合わせて電車や蝉などの環境音をリアルタイム合成します。音声ファイル 0 バイト。",
   "version": "0.1.0",
   "publisher": "guousui",
+  "icon": "icon.png",
   "license": "MIT",
   "repository": {
     "type": "git",

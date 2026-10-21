@@ -18,3 +18,7 @@ MEMO*
 notes/
 *.local.md
 *.memo.txt
+
+# Local working files: test renders, article drafts, raw demo footage, icon drafts
+_local/
+demo_videos/
