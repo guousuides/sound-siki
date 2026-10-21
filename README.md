@@ -48,6 +48,8 @@ Antigravity IDE（VS Code 互換エディタ）で拡張機能を実際に使っ
 | [![サボると停車](assets/videos/03-held.jpg)](assets/videos/03-held.mp4)<br>**3. サボると電車が止まり、車内放送が流れる**<br>駅で手を止めているとドアは開いたまま。「お客様対応のため…」の放送が、作業への復帰をそっと促します。 | [![駅で区切る](assets/videos/04-stations.jpg)](assets/videos/04-stations.mp4)<br>**4. 「時間」ではなく「駅」で区切る**<br>打ち続けていても、運転士が駅にピタリと止めてくれます。駅に着いたらひと休み。 |
 | [![車内アナウンス](assets/videos/05-announce.jpg)](assets/videos/05-announce.mp4)<br>**5. 耳でわかるリアルな車内アナウンス**<br>VOICEVOX 連携で、駅名や乗り換え案内を日本語＋英語の肉声で読み上げます。 | [![蝉と風鈴](assets/videos/06-cicada.jpg)](assets/videos/06-cicada.mp4)<br>**6. 「蝉と風鈴」モード**<br>打ち続けるほど蝉が1匹ずつ増えて蝉時雨に。Enter キーで風鈴が鳴ります。 |
 
+> **音声クレジット**: 動画 1〜5 の車内放送は **VOICEVOX:ずんだもん** の音声です（[VOICEVOX](https://voicevox.hiroshiba.jp/) ／ [ずんだもん 音源利用規約](https://zunko.jp/con_ongen_kiyaku.html)）。
+
 ---
 
 ## インストール
