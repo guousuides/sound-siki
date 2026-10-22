@@ -84,10 +84,10 @@ pip install -e .
 
 ### VS Code 拡張機能として利用する場合（Windows / macOS）
 
-> [!NOTE]
-> **Marketplace 未公開について**  
-> 本拡張機能は現在、Visual Studio Marketplace には公開していません。  
-> ご利用の際は、本リポジトリから VSIX パッケージをビルド（またはダウンロード）し、手動でインストールしていただく形となります。
+> [!TIP]
+> **Visual Studio Marketplace で公開中**  
+> VS Code の拡張機能ビューで「sound-siki」と検索して Install するだけで使えます（[Marketplace のページ](https://marketplace.visualstudio.com/items?itemName=guousui.typing-demon)）。  
+> Antigravity IDE など Open VSX を使うエディタでは、下記の手順で `.vsix` からインストールしてください。
 
 `vscode/` フォルダに拡張機能が入っています。ターミナルを開かなくても、VS Code のステータスバーにある **▶ sound-siki** をクリックするだけで乗車できます。
 

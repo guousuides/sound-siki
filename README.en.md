@@ -86,10 +86,10 @@ pip install -e .
 
 ### As a VS Code extension (Windows / macOS)
 
-> [!NOTE]
-> **Marketplace Availability**  
-> This extension is currently **not published to the Visual Studio Marketplace**.  
-> To use it, please build the `.vsix` package from this repository and install it manually.
+> [!TIP]
+> **Available on the Visual Studio Marketplace**  
+> In VS Code, search for "sound-siki" in the Extensions view and click Install ([Marketplace page](https://marketplace.visualstudio.com/items?itemName=guousui.typing-demon)).  
+> For editors that use Open VSX (such as Antigravity IDE), install from the `.vsix` as described below.
 
 The extension lives in `vscode/`. You can board right from your status bar by clicking **▶ sound-siki**:
 
