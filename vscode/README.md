@@ -8,10 +8,9 @@ keep a steady flow. Every sound — rail joints, motor hum, tunnels, announcemen
 cicadas, and wind chimes — is **synthesised in real time from noise and arithmetic**.
 Zero audio files, no network required.
 
-> [!NOTE]
-> **Marketplace Availability Notice**  
-> This extension is currently **not published to the Visual Studio Marketplace**.  
-> To use it, please build or obtain the `.vsix` package from this repository and install it manually via `code --install-extension <package>.vsix`.
+> [!TIP]
+> **Available on the Visual Studio Marketplace.** Search for "sound-siki" in the Extensions view and click Install.  
+> For editors that use Open VSX (such as Antigravity IDE), install the `.vsix` from this repository via `code --install-extension <package>.vsix`.
 
 ## Features
 
@@ -64,10 +63,9 @@ the train is and how long it has travelled.
 
 ## 日本語
 
-> [!NOTE]
-> **Marketplace 未公開について**  
-> 本拡張機能は現在、**Visual Studio Marketplace には公開していません**。  
-> ご利用の際は、本リポジトリから `.vsix` ファイルをパッケージング（`npm run package`）またはダウンロードし、手動でインストールしてください。
+> [!TIP]
+> **Visual Studio Marketplace で公開中**です。拡張機能ビューで「sound-siki」と検索して Install してください。  
+> Antigravity IDE など Open VSX を使うエディタでは、`.vsix` ファイルをパッケージング（`npm run package`）してインストールしてください。
 
 あなたのタイピングに合わせて、心地よい電車の走行音が響きます。キーを叩けば駅を出発して加速し、手を止めると惰行して、駅のホームでドアを開けて静かに待ってくれます。
 淡々と集中を続ければ、木々から蝉の声が重なります。レールの継ぎ目音（ジョイント音）も、VVVFインバータの唸りも、車内アナウンスも、すべて**その場で計算式からリアルタイム合成**しています。
