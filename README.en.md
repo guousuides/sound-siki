@@ -50,6 +50,8 @@ Short clips of the extension in real use inside Antigravity IDE (a VS Code–com
 | [![Held at station](assets/videos/03-held.jpg)](assets/videos/03-held.mp4)<br>**3. Stop typing and the train waits**<br>Doors stay open at the platform, and a polite "we are being held" announcement nudges you back to work. | [![Station breaks](assets/videos/04-stations.jpg)](assets/videos/04-stations.mp4)<br>**4. Break by stations, not timers**<br>The driver always stops precisely at the platform — your natural moment for a break. |
 | [![Announcements](assets/videos/05-announce.jpg)](assets/videos/05-announce.mp4)<br>**5. Realistic on-board announcements**<br>With VOICEVOX, station names and transfers are read aloud in Japanese and English. |  [![Cicadas](assets/videos/06-cicada.jpg)](assets/videos/06-cicada.mp4)<br>**6. Cicadas & wind chime mode**<br>The chorus grows one cicada at a time as you keep typing; Enter rings a wind chime. |
 
+> **Voice credit**: The announcements in videos 1–5 use **VOICEVOX:ずんだもん (Zundamon)** ([VOICEVOX](https://voicevox.hiroshiba.jp/) / [Zundamon voice terms](https://zunko.jp/con_ongen_kiyaku.html)).
+
 ---
 
 ## Installation
