@@ -41,6 +41,15 @@ Board with a single click from the status bar. It monitors edits directly inside
 
 ![VS Code Extension Screenshot](assets/demo_vscode.png)
 
+### Feature Videos (with sound)
+Short clips of the extension in real use inside Antigravity IDE (a VS Code–compatible editor), one per feature. Click a thumbnail to open the video — **turn your sound on**, the audio is the whole point.
+
+| | |
+|---|---|
+| [![Boarding](assets/videos/01-board.jpg)](assets/videos/01-board.mp4)<br>**1. Pick a line and board**<br>Start from the status bar, choose line, service and stations, see the estimated ride time, and depart with the bell. | [![Accelerate](assets/videos/02-accelerate.jpg)](assets/videos/02-accelerate.mp4)<br>**2. Your typing is the throttle**<br>Type faster and the train gradually speeds up; stop and it coasts, then the driver gently brakes. |
+| [![Held at station](assets/videos/03-held.jpg)](assets/videos/03-held.mp4)<br>**3. Stop typing and the train waits**<br>Doors stay open at the platform, and a polite "we are being held" announcement nudges you back to work. | [![Station breaks](assets/videos/04-stations.jpg)](assets/videos/04-stations.mp4)<br>**4. Break by stations, not timers**<br>The driver always stops precisely at the platform — your natural moment for a break. |
+| [![Announcements](assets/videos/05-announce.jpg)](assets/videos/05-announce.mp4)<br>**5. Realistic on-board announcements**<br>With VOICEVOX, station names and transfers are read aloud in Japanese and English. |  [![Cicadas](assets/videos/06-cicada.jpg)](assets/videos/06-cicada.mp4)<br>**6. Cicadas & wind chime mode**<br>The chorus grows one cicada at a time as you keep typing; Enter rings a wind chime. |
+
 ---
 
 ## Installation
