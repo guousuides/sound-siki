@@ -95,8 +95,8 @@ pip install -e .
 
 ```sh
 cd vscode
-npm run package                                   # typing-demon-0.1.0.vsix が生成されます
-code --install-extension typing-demon-0.1.0.vsix
+npm run package                                   # typing-demon-0.1.1.vsix が生成されます
+code --install-extension typing-demon-0.1.1.vsix
 ```
 
 - 初回実行時に、拡張機能専用の仮想環境を自動作成し、`numpy` と `sounddevice` をセットアップします（要 Python 3.9 以上）。
