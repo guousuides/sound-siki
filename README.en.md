@@ -97,8 +97,8 @@ The extension lives in `vscode/`. You can board right from your status bar by cl
 
 ```sh
 cd vscode
-npm run package                                   # builds typing-demon-0.1.0.vsix
-code --install-extension typing-demon-0.1.0.vsix
+npm run package                                   # builds typing-demon-0.1.1.vsix
+code --install-extension typing-demon-0.1.1.vsix
 ```
 
 - On first launch, the extension automatically sets up its own virtual environment with `numpy` and `sounddevice` (Python 3.9+).
