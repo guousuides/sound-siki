@@ -2,7 +2,7 @@
   "name": "typing-demon",
   "displayName": "sound-siki — タイピングのリズムに寄り添う環境音",
   "description": "エディタの打鍵リズムに合わせて電車や蝉などの環境音をリアルタイム合成します。音声ファイル 0 バイト。",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "guousui",
   "icon": "icon.png",
   "license": "MIT",
