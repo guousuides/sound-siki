@@ -18,7 +18,7 @@ Zero audio files, no network required.
 - Pick line, direction, service, origin and destination from Quick Picks, with estimated ride time shown
 - Status bar displays current speed, next stop, and remaining distance; announcements stream to the **sound-siki** output panel
 - Close VS Code and the train is parked safely — resume seamlessly next time
-- Optional warm voice for announcements via a local [VOICEVOX](https://voicevox.hiroshiba.jp/) engine
+- Optional warm voice for announcements via a local [VOICEVOX](https://voicevox.hiroshiba.jp/) engine (credit: VOICEVOX:ずんだもん)
 
 ## Requirements
 
@@ -75,7 +75,7 @@ the train is and how long it has travelled.
 - **使い方**: ステータスバーの **▶ sound-siki** をクリックするだけで乗車できます。路線・向き・種別・出発駅・目的駅をクイックピックから選ぶと旅が始まります。もう一度クリックするといつでも下車できます。
 - **プライバシー**: キー入力は既定でエディタ内の文字編集イベントから取得します（OSのキーフックは使用しないため、macOSのアクセシビリティ許可も不要です）。作業中のソースコードの内容が外部に漏れることは一切ありません。
 - **旅の続きから乗車**: VS Code を閉じると、電車の現在地が自動保存されます。次回開いたときに「前回の続きから」乗車できます。
-- **リアルな肉声放送**: ローカルで VOICEVOX を起動しておくと、車内アナウンスが温かみのある肉声（ずんだもん等）になります。
+- **リアルな肉声放送**: ローカルで VOICEVOX を起動しておくと、車内アナウンスが温かみのある肉声（ずんだもん等）になります。（クレジット: VOICEVOX:ずんだもん）
 
 詳しい仕組みやターミナル版の使い方は、[リポジトリの README](https://github.com/guousuides/sound-siki#readme) をご覧ください。
 
